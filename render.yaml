@@ -1,0 +1,30 @@
+services:
+  # Backend: FastAPI (JSCORP HR API)
+  - type: web
+    name: jscorp-hr-backend
+    env: python
+    plan: free
+    buildCommand: |
+      cd backend
+      pip install -r requirements.txt
+    startCommand: |
+      cd backend
+      uvicorn app.main:app --host 0.0.0.0 --port 10000
+
+  # Frontend: React (static site) calling backend via env var
+  - type: web
+    name: jscorp-hr-frontend
+    env: static
+    plan: free
+    buildCommand: |
+      cd frontend
+      npm install
+      npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: jscorp-hr-backend
+          property: url
+

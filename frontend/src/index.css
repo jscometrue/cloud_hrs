@@ -1,0 +1,325 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #0f172a;
+  background-color: #0f172a;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #1f2937 0, #020617 55%, #020617 100%);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app-shell {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 2.5rem;
+  color: #e5e7eb;
+}
+
+@media (min-width: 768px) {
+  .app-shell {
+    padding: 2rem 0 3rem;
+  }
+}
+
+.card-surface {
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 1.25rem;
+  padding: 1.2rem 1rem 1.5rem;
+  box-shadow:
+    0 18px 45px rgba(15, 23, 42, 0.7),
+    0 0 0 1px rgba(148, 163, 184, 0.15);
+  backdrop-filter: blur(16px);
+}
+
+@media (min-width: 768px) {
+  .card-surface {
+    padding: 1.5rem 1.5rem 1.9rem;
+  }
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.3rem;
+}
+
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.brand-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 0, #38bdf8, #6366f1 55%, #4f46e5 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0b1120;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow:
+    0 10px 25px rgba(56, 189, 248, 0.55),
+    0 0 0 1px rgba(15, 23, 42, 0.9);
+}
+
+.brand-text-main {
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.brand-text-sub {
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+.app-badge {
+  border-radius: 999px;
+  padding: 0.15rem 0.65rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: #9ca3af;
+}
+
+.tab-nav {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.tab-pill {
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.8rem;
+  border: 1px solid rgba(148, 163, 184, 0.55);
+  color: #e5e7eb;
+  background: linear-gradient(to bottom right, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.9));
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tab-pill.active {
+  border-color: rgba(96, 165, 250, 0.9);
+  background: linear-gradient(to bottom right, #0ea5e9, #6366f1);
+  color: #0b1120;
+  box-shadow:
+    0 10px 25px rgba(37, 99, 235, 0.7),
+    0 0 0 1px rgba(15, 23, 42, 0.9);
+}
+
+.pill-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.9);
+}
+
+.tab-pill.active .pill-dot {
+  background: #0b1120;
+}
+
+.section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.section-subtitle {
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+.chip-row {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.9rem;
+}
+
+.chip {
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.75rem;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(55, 65, 81, 0.8);
+  color: #e5e7eb;
+}
+
+.chip.soft {
+  background: rgba(30, 64, 175, 0.3);
+  border-color: rgba(129, 140, 248, 0.8);
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 1.1rem;
+}
+
+@media (min-width: 640px) {
+  .kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.kpi-card {
+  border-radius: 0.9rem;
+  padding: 0.7rem 0.75rem;
+  background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), rgba(15, 23, 42, 0.9));
+  border: 1px solid rgba(55, 65, 81, 0.9);
+}
+
+.kpi-label {
+  font-size: 0.72rem;
+  color: #9ca3af;
+  margin-bottom: 0.2rem;
+}
+
+.kpi-main {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.kpi-sub {
+  font-size: 0.7rem;
+  color: #9ca3af;
+}
+
+.list-card {
+  border-radius: 1rem;
+  padding: 0.7rem 0.75rem;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(55, 65, 81, 0.9);
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #9ca3af;
+  margin-bottom: 0.35rem;
+}
+
+.list-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.35rem 0;
+  border-top: 1px solid rgba(31, 41, 55, 0.9);
+}
+
+.list-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.list-title {
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+.list-meta {
+  font-size: 0.72rem;
+  color: #9ca3af;
+}
+
+.list-value {
+  text-align: right;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.badge-soft {
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.7rem;
+  background: rgba(22, 163, 74, 0.18);
+  color: #bbf7d0;
+  border: 1px solid rgba(34, 197, 94, 0.6);
+}
+
+.badge-soft.warning {
+  background: rgba(251, 146, 60, 0.15);
+  color: #fed7aa;
+  border-color: rgba(251, 146, 60, 0.7);
+}
+
+.section-footer {
+  margin-top: 1.1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.72rem;
+  color: #9ca3af;
+}
+
+.primary-button {
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.78rem;
+  border: none;
+  background: linear-gradient(to right, #0ea5e9, #6366f1);
+  color: #0b1120;
+  font-weight: 600;
+  box-shadow:
+    0 12px 30px rgba(37, 99, 235, 0.7),
+    0 0 0 1px rgba(15, 23, 42, 0.9);
+}
+
+.primary-button:active {
+  transform: translateY(1px);
+  box-shadow:
+    0 8px 20px rgba(37, 99, 235, 0.6),
+    0 0 0 1px rgba(15, 23, 42, 0.9);
+}
+
