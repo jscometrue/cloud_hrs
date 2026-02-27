@@ -22,9 +22,9 @@ services:
       npm run build
     staticPublishPath: frontend/dist
     envVars:
-      - key: VITE_API_BASE_URL
+      - key: VITE_API_HOST
         fromService:
           type: web
           name: jscorp-hr-backend
-          property: url
+          property: host
 

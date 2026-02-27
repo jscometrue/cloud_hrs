@@ -46,7 +46,9 @@ type TabKey = 'employees' | 'attendance' | 'payroll'
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE_API_BASE_URL.length > 0
     ? import.meta.env.VITE_API_BASE_URL
-    : 'http://localhost:8000'
+    : import.meta.env.VITE_API_HOST && import.meta.env.VITE_API_HOST.length > 0
+      ? `https://${import.meta.env.VITE_API_HOST}`
+      : 'http://localhost:8000'
 
 function App() {
   const [activeTab, setActiveTab] = useState<TabKey>('employees')
