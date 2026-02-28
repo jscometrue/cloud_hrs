@@ -101,12 +101,19 @@ type DashboardStats = {
 
 type TabKey = 'dashboard' | 'employees' | 'organization' | 'attendance' | 'payroll' | 'evaluation' | 'education'
 
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE_API_BASE_URL.length > 0
-    ? import.meta.env.VITE_API_BASE_URL
-    : import.meta.env.VITE_API_HOST && import.meta.env.VITE_API_HOST.length > 0
-      ? `https://${import.meta.env.VITE_API_HOST}`
-      : 'http://localhost:8000'
+function getApiBase(): string {
+  const fromUrl = import.meta.env.VITE_API_BASE_URL
+  if (fromUrl && String(fromUrl).trim().length > 0) return String(fromUrl).replace(/\/$/, '')
+  const host = import.meta.env.VITE_API_HOST
+  if (host && String(host).trim().length > 0) return `https://${String(host).trim()}`
+  // Deployed on Render without env: guess backend from frontend host (e.g. jscorp-hr-frontend -> jscorp-hr-backend)
+  if (typeof window !== 'undefined' && window.location.hostname.endsWith('onrender.com')) {
+    const base = window.location.origin.replace(/-frontend\.onrender\.com$/, '-backend.onrender.com')
+    if (base !== window.location.origin) return base
+  }
+  return 'http://localhost:8000'
+}
+const API_BASE = getApiBase()
 
 function authHeaders(token: string | null): Record<string, string> {
   if (!token) return {}

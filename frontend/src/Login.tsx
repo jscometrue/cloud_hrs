@@ -25,6 +25,9 @@ export default function Login({ apiBase, onSuccess }: Props) {
         body: JSON.stringify({ username, password }),
       })
       if (!res.ok) {
+        if (res.status === 404) {
+          throw new Error(t('login.notFound'))
+        }
         const data = await res.json().catch(() => ({}))
         throw new Error((data as { detail?: string }).detail || 'Login failed')
       }

@@ -12,7 +12,8 @@
     "placeholderUsername": "Enter username",
     "placeholderPassword": "Enter password",
     "error": "Invalid username or password",
-    "loggingIn": "Signing in…"
+    "loggingIn": "Signing in…",
+    "notFound": "Login server not found. Set VITE_API_BASE_URL to your backend URL in the frontend service and redeploy."
   },
   "nav": {
     "dashboard": "Dashboard",

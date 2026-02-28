@@ -12,7 +12,8 @@
     "placeholderUsername": "사용자 ID 입력",
     "placeholderPassword": "비밀번호 입력",
     "error": "사용자 ID 또는 비밀번호가 올바르지 않습니다.",
-    "loggingIn": "로그인 중…"
+    "loggingIn": "로그인 중…",
+    "notFound": "로그인 서버를 찾을 수 없습니다. 배포 설정에서 VITE_API_BASE_URL을 백엔드 주소로 넣은 뒤 프론트엔드를 다시 배포해 주세요."
   },
   "nav": {
     "dashboard": "대시보드",
