@@ -20,6 +20,12 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     username: Mapped[str] = mapped_column(String(50), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    role: Mapped[str] = mapped_column(String(50), default="EMPLOYEE")
+    reset_token: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    reset_token_expires: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    verification_token: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
@@ -65,12 +71,44 @@ class Employee(Base):
     pay_group_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("pay_groups.id"), nullable=True
     )
+    user_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
     department: Mapped["Department"] = relationship(backref="employees")
+    user: Mapped["User"] = relationship()
+
+
+class EmployeeJobHistory(Base):
+    __tablename__ = "employee_job_histories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    emp_id: Mapped[int] = mapped_column(Integer, ForeignKey("employees.id"))
+    from_dept_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    to_dept_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    change_date: Mapped[date] = mapped_column(Date, default=date.today)
+    reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    employee: Mapped["Employee"] = relationship()
+
+
+class EmployeeStatusHistory(Base):
+    __tablename__ = "employee_status_histories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    emp_id: Mapped[int] = mapped_column(Integer, ForeignKey("employees.id"))
+    from_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    to_status: Mapped[str] = mapped_column(String(20))
+    change_date: Mapped[date] = mapped_column(Date, default=date.today)
+    reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    employee: Mapped["Employee"] = relationship()
 
 
 class WorkCalendar(Base):
@@ -144,13 +182,18 @@ class LeaveRequest(Base):
     end_datetime: Mapped[datetime] = mapped_column(DateTime)
     hours: Mapped[float] = mapped_column(DECIMAL(5, 2))
     status: Mapped[str] = mapped_column(String(20), default="REQUESTED")
+    approver_emp_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("employees.id"), nullable=True
+    )
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
-    employee: Mapped["Employee"] = relationship()
+    employee: Mapped["Employee"] = relationship(foreign_keys=[emp_id])
+    approver: Mapped["Employee"] = relationship(foreign_keys=[approver_emp_id])
 
 
 class LeaveBalance(Base):
@@ -281,4 +324,264 @@ class PayResultItem(Base):
 
     pay_result: Mapped["PayResult"] = relationship()
     pay_item: Mapped["PayItem"] = relationship()
+
+
+class PermissionRequest(Base):
+    __tablename__ = "permission_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    requester_user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
+    target_user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
+    requested_role: Mapped[str] = mapped_column(String(50))
+    status: Mapped[str] = mapped_column(String(20), default="PENDING")
+    reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    decided_by_user_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=True
+    )
+
+
+class EvaluationPlan(Base):
+    __tablename__ = "evaluation_plans"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(100))
+    year: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(20), default="OPEN")  # OPEN / CLOSED
+    start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+
+class EvaluationItem(Base):
+    __tablename__ = "evaluation_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    plan_id: Mapped[int] = mapped_column(Integer, ForeignKey("evaluation_plans.id"))
+    name: Mapped[str] = mapped_column(String(100))
+    weight: Mapped[float] = mapped_column(DECIMAL(5, 2), default=0)
+    category: Mapped[str | None] = mapped_column(String(20), nullable=True)  # SELF/MANAGER/PEER
+
+    plan: Mapped["EvaluationPlan"] = relationship()
+
+
+class EvaluationResult(Base):
+    __tablename__ = "evaluation_results"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    plan_id: Mapped[int] = mapped_column(Integer, ForeignKey("evaluation_plans.id"))
+    emp_id: Mapped[int] = mapped_column(Integer, ForeignKey("employees.id"))
+    evaluator_emp_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("employees.id"), nullable=True
+    )  # None = self, else manager/peer
+    score: Mapped[float] = mapped_column(DECIMAL(5, 2))
+    comment: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    grade: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    is_promotion_candidate: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    plan: Mapped["EvaluationPlan"] = relationship()
+    employee: Mapped["Employee"] = relationship(foreign_keys=[emp_id])
+    evaluator: Mapped["Employee"] = relationship(foreign_keys=[evaluator_emp_id])
+
+
+class EvaluationScore(Base):
+    __tablename__ = "evaluation_scores"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    result_id: Mapped[int] = mapped_column(Integer, ForeignKey("evaluation_results.id"))
+    item_id: Mapped[int] = mapped_column(Integer, ForeignKey("evaluation_items.id"))
+    score: Mapped[float] = mapped_column(DECIMAL(5, 2))
+    comment: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    result: Mapped["EvaluationResult"] = relationship()
+    item: Mapped["EvaluationItem"] = relationship()
+
+
+class EvaluationTarget(Base):
+    __tablename__ = "evaluation_targets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    plan_id: Mapped[int] = mapped_column(Integer, ForeignKey("evaluation_plans.id"))
+    emp_id: Mapped[int] = mapped_column(Integer, ForeignKey("employees.id"))
+    status: Mapped[str] = mapped_column(String(20), default="PENDING")
+
+    plan: Mapped["EvaluationPlan"] = relationship()
+    employee: Mapped["Employee"] = relationship()
+
+
+class EvaluationEvaluator(Base):
+    __tablename__ = "evaluation_evaluators"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    target_id: Mapped[int] = mapped_column(Integer, ForeignKey("evaluation_targets.id"))
+    evaluator_emp_id: Mapped[int] = mapped_column(Integer, ForeignKey("employees.id"))
+    relation: Mapped[str] = mapped_column(String(20))  # SELF/MANAGER/PEER
+    status: Mapped[str] = mapped_column(String(20), default="PENDING")
+
+    target: Mapped["EvaluationTarget"] = relationship()
+    evaluator: Mapped["Employee"] = relationship()
+
+
+class GradePolicy(Base):
+    __tablename__ = "grade_policies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    plan_id: Mapped[int] = mapped_column(Integer, ForeignKey("evaluation_plans.id"))
+    min_score: Mapped[float] = mapped_column(DECIMAL(5, 2))
+    max_score: Mapped[float] = mapped_column(DECIMAL(5, 2))
+    grade: Mapped[str] = mapped_column(String(10))
+    is_promotion_candidate: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    plan: Mapped["EvaluationPlan"] = relationship()
+
+
+class TrainingCourse(Base):
+    __tablename__ = "training_courses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    code: Mapped[str] = mapped_column(String(50), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(100))
+    category: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+
+class TrainingSession(Base):
+    __tablename__ = "training_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    course_id: Mapped[int] = mapped_column(Integer, ForeignKey("training_courses.id"))
+    title: Mapped[str] = mapped_column(String(100))
+    start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    capacity: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    course: Mapped["TrainingCourse"] = relationship()
+
+
+class TrainingEnrollment(Base):
+    __tablename__ = "training_enrollments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    session_id: Mapped[int] = mapped_column(Integer, ForeignKey("training_sessions.id"))
+    emp_id: Mapped[int] = mapped_column(Integer, ForeignKey("employees.id"))
+    status: Mapped[str] = mapped_column(
+        String(20), default="REQUESTED"
+    )  # REQUESTED / APPROVED / COMPLETED / CANCELLED
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    session: Mapped["TrainingSession"] = relationship()
+    employee: Mapped["Employee"] = relationship()
+
+
+class BenefitPolicy(Base):
+    __tablename__ = "benefit_policies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    code: Mapped[str] = mapped_column(String(50), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(100))
+    policy_type: Mapped[str] = mapped_column(String(20))  # POINT, MEAL, HOUSING, etc.
+    default_points: Mapped[float] = mapped_column(DECIMAL(10, 2), default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+
+class PointBalance(Base):
+    __tablename__ = "point_balances"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    emp_id: Mapped[int] = mapped_column(Integer, ForeignKey("employees.id"))
+    policy_id: Mapped[int] = mapped_column(Integer, ForeignKey("benefit_policies.id"))
+    balance: Mapped[float] = mapped_column(DECIMAL(12, 2), default=0)
+    year: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    employee: Mapped["Employee"] = relationship()
+    policy: Mapped["BenefitPolicy"] = relationship()
+
+
+class PointTransaction(Base):
+    __tablename__ = "point_transactions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    balance_id: Mapped[int] = mapped_column(Integer, ForeignKey("point_balances.id"))
+    amount: Mapped[float] = mapped_column(DECIMAL(12, 2))
+    txn_type: Mapped[str] = mapped_column(String(20))  # GRANT, USE, EXPIRE, ADJUST
+    memo: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    balance: Mapped["PointBalance"] = relationship()
+
+
+class CodeGroup(Base):
+    __tablename__ = "code_groups"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    code: Mapped[str] = mapped_column(String(50), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+
+class Code(Base):
+    __tablename__ = "codes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    group_id: Mapped[int] = mapped_column(Integer, ForeignKey("code_groups.id"))
+    code: Mapped[str] = mapped_column(String(50), index=True)
+    name: Mapped[str] = mapped_column(String(100))
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    group: Mapped["CodeGroup"] = relationship()
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
+    action: Mapped[str] = mapped_column(String(50))
+    entity_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    entity_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    old_value: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    new_value: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    user: Mapped["User"] = relationship()
 

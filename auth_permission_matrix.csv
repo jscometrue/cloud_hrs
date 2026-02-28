@@ -1,0 +1,22 @@
+기능ID,메뉴명,기능설명,데이터대상,기본스코프,SYSTEM_ADMIN,HR_ADMIN,PAYROLL_ADMIN,PLANT_MANAGER,PRODUCTION_MANAGER,QUALITY_MANAGER,MAINT_MANAGER,WAREHOUSE_MANAGER,SALES_MANAGER,EMPLOYEE
+EMP_PROFILE_VIEW,인사기본정보 조회,직원 인사 기본정보 조회,직원,SELF,ALL,ALL,N,ORG,ORG,ORG,ORG,ORG,ORG,SELF
+EMP_PROFILE_EDIT,인사기본정보 수정(관리자),직원 인사정보 수정(주소/연락처 제외),직원,ORG,ALL,ALL,N,ORG,ORG,N,N,N,N,N
+EMP_SELF_EDIT,내 정보 수정,본인 연락처/주소/비상연락망 수정,직원,SELF,N,N,N,N,N,N,N,N,N,SELF
+ORG_CHART_VIEW,조직도 조회,회사 조직도 및 인원 현황 조회,조직,ALL,ALL,ALL,N,ORG,ORG,ORG,ORG,ORG,ORG,SELF
+ORG_CHANGE_MGMT,인사발령 관리,조직 이동/승진/직책 변경 등록,직원,ALL,ALL,ALL,N,N,N,N,N,N,N,N
+ATTEND_VIEW,근태현황 조회,출퇴근/연장/야간/휴일 근무 조회,근태,SELF,ALL,ALL,N,ORG,ORG,ORG,ORG,ORG,ORG,SELF
+ATTEND_APPROVE,근태 승인,부하직원 근태/연장/휴일근무 승인,근태,ORG,ALL,ALL,N,ORG,ORG,N,N,N,N,N
+SHIFT_PLAN_MGMT,교대근무 스케줄 관리,라인별 교대조 편성 및 스케줄 관리,교대/라인,ORG,ALL,N,N,N,ORG,N,N,N,N,N
+LEAVE_REQUEST,휴가/연차 신청,연차/휴가 신청 및 취소,근태,SELF,N,N,N,N,N,N,N,N,N,SELF
+LEAVE_APPROVE,휴가/연차 승인,팀/조직 구성원 휴가 승인,근태,ORG,ALL,ALL,N,ORG,ORG,N,N,N,N,N
+TRAINING_MGMT,교육/자격 관리,안전/품질/설비 교육 및 자격증 이력 관리,교육,ORG,ALL,ALL,N,ORG,ORG,ORG,ORG,ORG,N,SELF
+PAYSLIP_VIEW,급여명세 조회,급여명세서 조회,급여,SELF,ALL,N,ALL,N,N,N,N,N,N,SELF
+PAYROLL_RUN,급여 계산/마감,월 급여 계산 및 마감,급여,ALL,ALL,N,ALL,N,N,N,N,N,N,N
+BONUS_MGMT,상여/성과급 관리,생산/품질 지표 기반 상여·성과급 관리,급여,ALL,ALL,N,ALL,N,N,N,N,N,N,N
+SAFETY_DASHBOARD,안전지표 대시보드,재해/사고/안전교육 이력 조회,안전,ORG,ALL,ALL,N,ORG,ORG,ORG,ORG,ORG,N,N
+PRODUCTION_HEADCOUNT,라인 인력 현황,생산라인별 인원/잔업/특근 현황 조회,생산인력,ORG,ALL,HR, N,ORG,ORG,N,N,N,N,N
+WAREHOUSE_HEADCOUNT,창고 인력 현황,창고/물류 인력 및 근태 현황 조회,물류인력,ORG,ALL,HR, N,N,N,N,N,ORG,N,N
+SALES_PERFORMANCE_VIEW,영업 인력 실적 조회,영업조직 인력 및 실적 관련 인사정보 제한적 조회,영업인력,ORG,ALL,HR, N,N,N,N,N,N,ORG,N
+USER_MANAGE,사용자 관리,시스템 계정 생성/수정/잠금,사용자,ALL,ALL,N,N,N,N,N,N,N,N,N
+ROLE_MANAGE,역할/권한 관리,역할 생성·수정 및 권한 설정,역할,ALL,ALL,N,N,N,N,N,N,N,N,N
+AUTH_REQ_APPROVE,권한 요청 승인,추가 권한 요청 승인,권한요청,ALL,ALL,ALL,N,N,N,N,N,N,N,N

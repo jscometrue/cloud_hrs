@@ -30,12 +30,16 @@
     "testFailNetwork": "Network error (backend sleeping or wrong URL)",
     "testNoUrl": "Enter URL",
     "forgotPassword": "Forgot password?",
-    "forgotPasswordHint": "Ask the administrator (admin) to reset your password."
+    "forgotPasswordHint": "Enter your username below and click 'Request password reset' to get a reset link.",
+    "verifyEmailFirst": "Verify your email before logging in.",
+    "requestPasswordReset": "Request password reset",
+    "resetRequested": "Open the link below to set a new password."
   },
   "auth": {
     "changePassword": "Change password",
     "currentPassword": "Current password",
     "newPassword": "New password",
+    "role": "Role",
     "users": "User management",
     "usersSubtitle": "Add login accounts and reset passwords",
     "username": "Username",
@@ -53,6 +57,7 @@
     "payroll": "Payroll",
     "evaluation": "Evaluation",
     "education": "Education",
+    "benefits": "Benefits",
     "users": "Users",
     "logout": "Logout"
   },
@@ -64,7 +69,9 @@
     "departments": "Departments",
     "payGroups": "Pay groups",
     "payRuns": "Pay runs",
-    "leavePending": "Leave pending"
+    "leavePending": "Leave pending",
+    "turnoverRate": "Turnover rate",
+    "totalPayroll": "Total payroll"
   },
   "employees": {
     "title": "Employees",
@@ -133,6 +140,9 @@
     "leaveRequests": "Leave requests",
     "leaveType": "Leave type",
     "hours": "Hours",
+    "status": "Status",
+    "approve": "Approve",
+    "reject": "Reject",
     "requestLeave": "Request leave",
     "monthlySummary": "Monthly summary",
     "startTime": "Start time",
@@ -141,7 +151,12 @@
     "startDatetime": "Start",
     "endDatetime": "End",
     "reason": "Reason",
-    "submitRequest": "Submit"
+    "submitRequest": "Submit",
+    "timeLogs": "Time logs",
+    "recordInOut": "Record IN/OUT",
+    "logDatetime": "Datetime",
+    "logType": "Type",
+    "noTimeLogs": "No records"
   },
   "payroll": {
     "title": "Payroll runs",
@@ -168,12 +183,40 @@
   "evaluation": {
     "title": "Evaluation & Promotion",
     "subtitle": "Performance and promotion",
-    "comingSoon": "Coming soon."
+    "comingSoon": "Coming soon.",
+    "myEvaluation": "My evaluation",
+    "plan": "Evaluation plan",
+    "noPlan": "No evaluation plan registered.",
+    "score": "Score (0–100)",
+    "comment": "Comment",
+    "planManagement": "Evaluation plans",
+    "item": "Evaluation item",
+    "teamEvaluation": "Team evaluation",
+    "targetEmployee": "Target employee",
+    "selectTarget": "Select target",
+    "promotionCandidates": "Promotion candidates",
+    "noPromotionCandidates": "No promotion candidates"
   },
   "education": {
     "title": "Training & Competency",
     "subtitle": "Training and competency management",
-    "comingSoon": "Coming soon."
+    "comingSoon": "Coming soon.",
+    "courses": "Courses",
+    "sessions": "Sessions",
+    "myEnrollments": "My enrollments",
+    "enroll": "Enroll",
+    "status": "Status",
+    "noCourses": "No courses",
+    "noSessions": "No sessions",
+    "noEnrollments": "No enrollments"
+  },
+  "benefits": {
+    "title": "Benefits",
+    "subtitle": "Welfare points and benefits",
+    "myBalances": "My point balances",
+    "policies": "Benefit policies",
+    "balance": "Balance",
+    "noBalances": "No point balances"
   },
   "common": {
     "loading": "Loading…",

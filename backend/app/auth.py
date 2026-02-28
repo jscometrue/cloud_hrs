@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta, timezone
 
+import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from sqlalchemy.orm import Session
 
@@ -14,40 +14,30 @@ SECRET_KEY = "jscorp-hr-secret-key-change-in-production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer(auto_error=False)
-
 
 _BCRYPT_MAX_BYTES = 72
 
 
-def _truncate_for_bcrypt(s: str) -> str:
+def _to_bytes(s: str) -> bytes:
     if not isinstance(s, str):
         s = str(s) if s is not None else ""
     b = s.encode("utf-8")
-    if len(b) <= _BCRYPT_MAX_BYTES:
-        return s
-    out = b[:_BCRYPT_MAX_BYTES].decode("utf-8", errors="ignore")
-    return out if out else "\x00"
+    if len(b) > _BCRYPT_MAX_BYTES:
+        b = b[:_BCRYPT_MAX_BYTES]
+    return b
 
 
 def verify_password(plain: str, hashed: str) -> bool:
     try:
-        return pwd_context.verify(_truncate_for_bcrypt(plain), hashed)
-    except ValueError:
+        return bcrypt.checkpw(_to_bytes(plain), hashed.encode("utf-8"))
+    except (ValueError, TypeError):
         return False
 
 
 def get_password_hash(password: str) -> str:
     password = password if isinstance(password, str) else (str(password) if password is not None else "")
-    pwd = _truncate_for_bcrypt(password)
-    try:
-        return pwd_context.hash(pwd)
-    except ValueError as e:
-        if "72 bytes" not in str(e):
-            raise
-        pwd = (password.encode("utf-8")[: _BCRYPT_MAX_BYTES]).decode("utf-8", errors="ignore") or "\x00"
-        return pwd_context.hash(pwd)
+    return bcrypt.hashpw(_to_bytes(password), bcrypt.gensalt()).decode("utf-8")
 
 
 def create_access_token(subject: str) -> str:
@@ -94,9 +84,25 @@ def get_current_user(
 def get_current_admin(
     current_user: models.User = Depends(get_current_user),
 ) -> models.User:
-    if current_user.username != "admin":
+    if getattr(current_user, "role", None) != "ADMIN":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin only",
         )
     return current_user
+
+
+def require_roles(*allowed_roles: str):
+    """
+    FastAPI dependency factory for simple role-based access control.
+    """
+
+    def _dep(current_user: models.User = Depends(get_current_user)) -> models.User:
+        if getattr(current_user, "role", None) not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not enough permissions",
+            )
+        return current_user
+
+    return _dep

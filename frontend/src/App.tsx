@@ -97,15 +97,98 @@ type DashboardStats = {
   pay_group_count: number
   pay_run_count: number
   leave_requests_pending: number
+  turnover_rate?: number
+  total_payroll?: number
 }
 
 type User = {
   id: number
   username: string
   is_active: boolean
+  role: string
 }
 
-type TabKey = 'dashboard' | 'employees' | 'organization' | 'attendance' | 'payroll' | 'evaluation' | 'education' | 'users'
+type PermissionRequest = {
+  id: number
+  requester_user_id: number
+  target_user_id: number
+  requested_role: string
+  status: string
+  reason: string | null
+  created_at: string
+  decided_at: string | null
+  decided_by_user_id: number | null
+}
+
+type TabKey = 'dashboard' | 'employees' | 'organization' | 'attendance' | 'payroll' | 'evaluation' | 'education' | 'benefits' | 'users'
+
+type EvaluationPlan = {
+  id: number
+  name: string
+  year: number
+  status: string
+  start_date: string | null
+  end_date: string | null
+}
+
+type EvaluationResult = {
+  id: number
+  plan_id: number
+  emp_id: number
+  score: number
+  comment: string | null
+}
+
+type EvaluationItemWithScore = {
+  id: number
+  plan_id: number
+  name: string
+  weight: number
+  category: string | null
+  my_score: number | null
+  my_comment: string | null
+}
+
+type TrainingCourse = {
+  id: number
+  code: string
+  name: string
+  category: string | null
+  is_active: boolean
+}
+
+type TrainingSession = {
+  id: number
+  course_id: number
+  title: string
+  start_date: string | null
+  end_date: string | null
+  capacity: number | null
+}
+
+type TrainingEnrollment = {
+  id: number
+  session_id: number
+  emp_id: number
+  status: string
+  created_at: string
+}
+
+type BenefitPolicy = {
+  id: number
+  code: string
+  name: string
+  policy_type: string
+  default_points: number
+}
+
+type PointBalance = {
+  id: number
+  emp_id: number
+  policy_id: number
+  balance: number
+  year: number
+}
 
 const API_BASE_STORAGE_KEY = 'jscorp_hr_api_base'
 
@@ -199,6 +282,60 @@ const defaultEmpForm = {
 
 const TOKEN_KEY = 'jscorp_hr_token'
 
+function ResetPasswordForm({
+  apiBase,
+  token,
+  onDone,
+}: {
+  apiBase: string
+  token: string
+  onDone: () => void
+}) {
+  const { t } = useTranslation()
+  const [newPassword, setNewPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+    try {
+      const res = await fetch(`${apiBase}/api/auth/reset-password-by-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, new_password: newPassword }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error((data as { detail?: string }).detail || 'Failed')
+      setMessage(t('login.resetRequested') + ' 완료. 로그인해 주세요.')
+      setTimeout(onDone, 1500)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {message && <p style={{ color: 'var(--success)', marginBottom: '0.5rem' }}>{message}</p>}
+      {error && <p style={{ color: '#fecaca', marginBottom: '0.5rem' }}>{error}</p>}
+      <div className="form-row">
+        <label>{t('auth.newPassword')}</label>
+        <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+      </div>
+      <div className="form-actions" style={{ marginTop: '1rem' }}>
+        <button type="submit" className="primary-button" disabled={loading}>
+          {loading ? t('common.loading') : t('employees.save')}
+        </button>
+        <button type="button" className="btn-secondary" onClick={onDone}>{t('employees.cancel')}</button>
+      </div>
+    </form>
+  )
+}
+
 function App() {
   const { t, i18n } = useTranslation()
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY))
@@ -280,9 +417,27 @@ function App() {
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
   const [changePasswordForm, setChangePasswordForm] = useState({ current_password: '', new_password: '' })
   const [showAddUserModal, setShowAddUserModal] = useState(false)
-  const [addUserForm, setAddUserForm] = useState({ username: '', password: '' })
+  const [addUserForm, setAddUserForm] = useState({ username: '', password: '', role: 'EMPLOYEE' })
   const [resetPasswordUserId, setResetPasswordUserId] = useState<number | null>(null)
   const [resetPasswordNew, setResetPasswordNew] = useState('')
+  const [permissionRequests, setPermissionRequests] = useState<PermissionRequest[]>([])
+  const [myPermissionRequests, setMyPermissionRequests] = useState<PermissionRequest[]>([])
+  const [showPermissionRequestModal, setShowPermissionRequestModal] = useState(false)
+  const [permissionRequestForm, setPermissionRequestForm] = useState({ requested_role: 'MANAGER', reason: '' })
+  const [evaluationPlans, setEvaluationPlans] = useState<EvaluationPlan[]>([])
+  const [selectedEvaluationPlanId, setSelectedEvaluationPlanId] = useState<number | null>(null)
+  const [, setMyEvaluationResult] = useState<EvaluationResult | null>(null)
+  const [myEvaluationForm, setMyEvaluationForm] = useState<{ score: number; comment: string }>({ score: 0, comment: '' })
+  const [evaluationItemScores, setEvaluationItemScores] = useState<EvaluationItemWithScore[]>([])
+  const [promotionCandidates, setPromotionCandidates] = useState<Employee[]>([])
+  const [teamEvalTargetEmpId, setTeamEvalTargetEmpId] = useState<number | null>(null)
+  const [teamEvalScores, setTeamEvalScores] = useState<Record<number, { score: number; comment: string }>>({})
+  const [trainingCourses, setTrainingCourses] = useState<TrainingCourse[]>([])
+  const [trainingSessions, setTrainingSessions] = useState<TrainingSession[]>([])
+  const [myEnrollments, setMyEnrollments] = useState<TrainingEnrollment[]>([])
+  const [benefitPolicies, setBenefitPolicies] = useState<BenefitPolicy[]>([])
+  const [myPointBalances, setMyPointBalances] = useState<PointBalance[]>([])
+  const [timeLogs, setTimeLogs] = useState<{ id: number; emp_id: number; log_datetime: string; log_type: string; source: string }[]>([])
 
   const currentYearMonth = new Date().toISOString().slice(0, 7).replace('-', '')
 
@@ -366,6 +521,153 @@ function App() {
     }
   }, [token])
 
+  const loadPermissionRequests = useCallback(async () => {
+    if (!token) return
+    // HR_ADMIN / ADMIN 전용 전체 요청 목록
+    if (currentUser?.role === 'ADMIN' || currentUser?.role === 'HR_ADMIN') {
+      try {
+        const list = await fetchJson<PermissionRequest[]>(`${API_BASE}/api/permissions/requests?status=PENDING`, headers)
+        setPermissionRequests(list)
+      } catch {
+        setPermissionRequests([])
+      }
+    } else {
+      setPermissionRequests([])
+    }
+    // 내 요청 목록
+    try {
+      const mine = await fetchJson<PermissionRequest[]>(`${API_BASE}/api/permissions/requests/mine`, headers)
+      setMyPermissionRequests(mine)
+    } catch {
+      setMyPermissionRequests([])
+    }
+  }, [token, currentUser?.role])
+
+  const loadEvaluationPlans = useCallback(async () => {
+    if (!token) return
+    try {
+      const plans = await fetchJson<EvaluationPlan[]>(`${API_BASE}/api/evaluations/plans`, headers)
+      setEvaluationPlans(plans)
+      if (!selectedEvaluationPlanId && plans.length > 0) {
+        setSelectedEvaluationPlanId(plans[0].id)
+      }
+    } catch {
+      setEvaluationPlans([])
+    }
+  }, [token, selectedEvaluationPlanId])
+
+  const loadMyEvaluation = useCallback(async () => {
+    if (!token || !selectedEvaluationPlanId) return
+    try {
+      const res = await fetchJson<EvaluationResult | null>(
+        `${API_BASE}/api/evaluations/my-result?plan_id=${selectedEvaluationPlanId}`,
+        headers,
+      )
+      if (res) {
+        setMyEvaluationResult(res)
+        setMyEvaluationForm({ score: res.score, comment: res.comment ?? '' })
+      } else {
+        setMyEvaluationResult(null)
+        setMyEvaluationForm({ score: 0, comment: '' })
+      }
+    } catch {
+      setMyEvaluationResult(null)
+      setMyEvaluationForm({ score: 0, comment: '' })
+    }
+  }, [token, selectedEvaluationPlanId])
+
+  const loadEvaluationItemScores = useCallback(async () => {
+    if (!token || !selectedEvaluationPlanId) return
+    try {
+      const items = await fetchJson<EvaluationItemWithScore[]>(
+        `${API_BASE}/api/evaluations/my-scores?plan_id=${selectedEvaluationPlanId}`,
+        headers,
+      )
+      setEvaluationItemScores(items)
+    } catch {
+      setEvaluationItemScores([])
+    }
+  }, [token, selectedEvaluationPlanId])
+
+  const loadPromotionCandidates = useCallback(async () => {
+    if (!token || !selectedEvaluationPlanId) return
+    try {
+      const list = await fetchJson<Employee[]>(
+        `${API_BASE}/api/evaluations/plans/${selectedEvaluationPlanId}/promotion-candidates`,
+        headers,
+      )
+      setPromotionCandidates(list)
+    } catch {
+      setPromotionCandidates([])
+    }
+  }, [token, selectedEvaluationPlanId])
+
+  const loadTrainingCourses = useCallback(async () => {
+    if (!token) return
+    try {
+      const list = await fetchJson<TrainingCourse[]>(`${API_BASE}/api/education/courses`, headers)
+      setTrainingCourses(list)
+    } catch {
+      setTrainingCourses([])
+    }
+  }, [token])
+
+  const loadTrainingSessions = useCallback(async () => {
+    if (!token) return
+    try {
+      const list = await fetchJson<TrainingSession[]>(`${API_BASE}/api/education/sessions`, headers)
+      setTrainingSessions(list)
+    } catch {
+      setTrainingSessions([])
+    }
+  }, [token])
+
+  const loadMyEnrollments = useCallback(async () => {
+    if (!token) return
+    try {
+      const list = await fetchJson<TrainingEnrollment[]>(`${API_BASE}/api/education/my-enrollments`, headers)
+      setMyEnrollments(list)
+    } catch {
+      setMyEnrollments([])
+    }
+  }, [token])
+
+  const loadBenefitPolicies = useCallback(async () => {
+    if (!token) return
+    try {
+      const list = await fetchJson<BenefitPolicy[]>(`${API_BASE}/api/benefits/policies`, headers)
+      setBenefitPolicies(list)
+    } catch {
+      setBenefitPolicies([])
+    }
+  }, [token])
+
+  const loadMyPointBalances = useCallback(async () => {
+    if (!token) return
+    try {
+      const list = await fetchJson<PointBalance[]>(
+        `${API_BASE}/api/benefits/my-balances?year=${new Date().getFullYear()}`,
+        headers,
+      )
+      setMyPointBalances(list)
+    } catch {
+      setMyPointBalances([])
+    }
+  }, [token])
+
+  const loadTimeLogs = useCallback(async () => {
+    if (!token) return
+    try {
+      const list = await fetchJson<{ id: number; emp_id: number; log_datetime: string; log_type: string; source: string }[]>(
+        `${API_BASE}/api/attendance/time-logs?year_month=${currentYearMonth}`,
+        headers,
+      )
+      setTimeLogs(list)
+    } catch {
+      setTimeLogs([])
+    }
+  }, [token, currentYearMonth])
+
   const loadUsers = useCallback(async () => {
     if (!token) return
     try {
@@ -392,6 +694,7 @@ function App() {
           loadWorkTypes(),
           loadLeaveRequests(),
           loadCurrentUser(),
+          loadEvaluationPlans(),
         ])
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load JSCORP HR data.')
@@ -400,11 +703,49 @@ function App() {
       }
     }
     void bootstrap()
-  }, [loadEmployees, loadDepartments, loadPayGroups, loadPayItems, loadAttendance, loadPayRuns, loadDashboardStats, loadWorkTypes, loadLeaveRequests, loadCurrentUser])
+  }, [loadEmployees, loadDepartments, loadPayGroups, loadPayItems, loadAttendance, loadPayRuns, loadDashboardStats, loadWorkTypes, loadLeaveRequests, loadCurrentUser, loadEvaluationPlans])
 
   useEffect(() => {
-    if (activeTab === 'users' && currentUser?.username === 'admin' && token) loadUsers()
-  }, [activeTab, currentUser?.username, token, loadUsers])
+    if (!token) return
+    void loadPermissionRequests()
+  }, [token, currentUser?.role, loadPermissionRequests])
+
+  useEffect(() => {
+    if (!token || !selectedEvaluationPlanId) return
+    void loadMyEvaluation()
+    void loadEvaluationItemScores()
+    if (currentUser?.role === 'ADMIN' || currentUser?.role === 'HR_ADMIN') {
+      void loadPromotionCandidates()
+    }
+  }, [token, selectedEvaluationPlanId, loadMyEvaluation, loadEvaluationItemScores, loadPromotionCandidates, currentUser?.role])
+
+  useEffect(() => {
+    if (activeTab === 'education' && token) {
+      void loadTrainingCourses()
+      void loadTrainingSessions()
+      void loadMyEnrollments()
+    }
+  }, [activeTab, token, loadTrainingCourses, loadTrainingSessions, loadMyEnrollments])
+
+  useEffect(() => {
+    if (activeTab === 'benefits' && token) {
+      void loadBenefitPolicies()
+      void loadMyPointBalances()
+    }
+  }, [activeTab, token, loadBenefitPolicies, loadMyPointBalances])
+
+  useEffect(() => {
+    if (activeTab === 'attendance' && token) {
+      void loadTimeLogs()
+    }
+  }, [activeTab, token, loadTimeLogs])
+
+  useEffect(() => {
+    if (activeTab === 'users' && (currentUser?.role === 'ADMIN' || currentUser?.role === 'HR_ADMIN') && token) {
+      loadUsers()
+      loadPermissionRequests()
+    }
+  }, [activeTab, currentUser?.role, token, loadUsers, loadPermissionRequests])
 
   async function handleSelectRun(runId: number) {
     try {
@@ -423,6 +764,22 @@ function App() {
   }
 
   if (!token) {
+    const params = new URLSearchParams(window.location.search)
+    const resetToken = params.get('reset')
+    if (resetToken) {
+      return (
+        <div className="app-shell">
+          <div className="card-surface" style={{ maxWidth: '400px', margin: '2rem auto' }}>
+            <div className="modal-title" style={{ marginBottom: '1rem' }}>{t('auth.resetPassword')}</div>
+            <ResetPasswordForm
+              apiBase={API_BASE}
+              token={resetToken}
+              onDone={() => window.history.replaceState({}, '', window.location.pathname)}
+            />
+          </div>
+        </div>
+      )
+    }
     return (
       <Login
         apiBase={API_BASE}
@@ -714,7 +1071,7 @@ function App() {
       setError(null)
       await postJson(`${API_BASE}/api/users`, addUserForm, headers)
       setShowAddUserModal(false)
-      setAddUserForm({ username: '', password: '' })
+      setAddUserForm({ username: '', password: '', role: 'EMPLOYEE' })
       await loadUsers()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed.')
@@ -780,6 +1137,16 @@ function App() {
             >
               {t('auth.changePassword')}
             </button>
+            {currentUser && currentUser.role !== 'ADMIN' && currentUser.role !== 'HR_ADMIN' && (
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                onClick={() => { setShowPermissionRequestModal(true); setPermissionRequestForm({ requested_role: 'MANAGER', reason: '' }) }}
+              >
+                {t('permissions.request')}
+              </button>
+            )}
             <button
               type="button"
               className="btn-danger"
@@ -851,7 +1218,15 @@ function App() {
             <span className="pill-dot" />
             {t('nav.education')}
           </button>
-          {currentUser?.username === 'admin' && (
+          <button
+            type="button"
+            className={`tab-pill ${activeTab === 'benefits' ? 'active' : ''}`}
+            onClick={() => setActiveTab('benefits')}
+          >
+            <span className="pill-dot" />
+            {t('nav.benefits')}
+          </button>
+          {(currentUser?.role === 'ADMIN' || currentUser?.role === 'HR_ADMIN') && (
             <button
               type="button"
               className={`tab-pill ${activeTab === 'users' ? 'active' : ''}`}
@@ -908,6 +1283,20 @@ function App() {
                   <div className="kpi-label">{t('dashboard.leavePending')}</div>
                   <div className="kpi-main">{dashboardStats.leave_requests_pending}</div>
                 </div>
+                {dashboardStats.turnover_rate != null && (
+                  <div className="kpi-card">
+                    <div className="kpi-label">{t('dashboard.turnoverRate')}</div>
+                    <div className="kpi-main">{dashboardStats.turnover_rate}%</div>
+                  </div>
+                )}
+                {dashboardStats.total_payroll != null && (
+                  <div className="kpi-card">
+                    <div className="kpi-label">{t('dashboard.totalPayroll')}</div>
+                    <div className="kpi-main">
+                      {(dashboardStats.total_payroll / 1_000_000).toFixed(1)}M
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </section>
@@ -1100,6 +1489,8 @@ function App() {
                 <div className="list-header">
                   <span>{t('payroll.employee')}</span>
                   <span>{t('attendance.leaveType')} · {t('attendance.hours')}</span>
+                  <span>{t('attendance.status')}</span>
+                  <span>{t('common.actions')}</span>
                 </div>
                 {leaveRequests.map((lr) => {
                   const emp = employees.find((e) => e.id === lr.emp_id)
@@ -1110,7 +1501,44 @@ function App() {
                         <div className="list-meta">{lr.start_datetime.slice(0, 16)} – {lr.end_datetime.slice(0, 16)}</div>
                       </div>
                       <div className="list-value">
-                        <span className="badge-soft">{lr.leave_type}</span> · {lr.hours}h · {lr.status}
+                        <span className="badge-soft">{lr.leave_type}</span> · {lr.hours}h
+                      </div>
+                      <div className="list-value">
+                        {lr.status}
+                      </div>
+                      <div className="list-row-actions">
+                        {lr.status === 'REQUESTED' && (currentUser?.role === 'ADMIN' || currentUser?.role === 'HR_ADMIN' || currentUser?.role === 'MANAGER') && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  setError(null)
+                                  await postJson(`${API_BASE}/api/attendance/leave-requests/${lr.id}/approve`, {}, headers)
+                                  await loadLeaveRequests()
+                                } catch (e) {
+                                  setError(e instanceof Error ? e.message : 'Failed.')
+                                }
+                              }}
+                            >
+                              {t('attendance.approve')}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  setError(null)
+                                  await postJson(`${API_BASE}/api/attendance/leave-requests/${lr.id}/reject`, {}, headers)
+                                  await loadLeaveRequests()
+                                } catch (e) {
+                                  setError(e instanceof Error ? e.message : 'Failed.')
+                                }
+                              }}
+                            >
+                              {t('attendance.reject')}
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   )
@@ -1158,6 +1586,55 @@ function App() {
                     </div>
                   )
                 })}
+              </div>
+            </div>
+            <div className="sub-section">
+              <div className="sub-section-title">{t('attendance.timeLogs')}</div>
+              <div className="form-row" style={{ marginBottom: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={async () => {
+                    try {
+                      setError(null)
+                      const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
+                      await postJson(`${API_BASE}/api/attendance/time-logs`, {
+                        log_datetime: now,
+                        log_type: timeLogs.length % 2 === 0 ? 'IN' : 'OUT',
+                        source: 'WEB',
+                      }, headers)
+                      await loadTimeLogs()
+                    } catch (e) {
+                      setError(e instanceof Error ? e.message : 'Failed.')
+                    }
+                  }}
+                >
+                  {t('attendance.recordInOut')}
+                </button>
+              </div>
+              <div className="list-card">
+                <div className="list-header">
+                  <span>{t('attendance.logDatetime')}</span>
+                  <span>{t('attendance.logType')}</span>
+                </div>
+                {timeLogs.map((tl) => (
+                  <div key={tl.id} className="list-row">
+                    <div className="list-row-main">
+                      <div className="list-title">{tl.log_datetime.replace('T', ' ').slice(0, 16)}</div>
+                      <div className="list-meta">{tl.source}</div>
+                    </div>
+                    <div className="list-value">
+                      <span className={`badge-soft ${tl.log_type === 'IN' ? '' : 'warning'}`}>{tl.log_type}</span>
+                    </div>
+                  </div>
+                ))}
+                {timeLogs.length === 0 && (
+                  <div className="list-row">
+                    <div className="list-row-main">
+                      <div className="list-meta">{t('attendance.noTimeLogs')}</div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </section>
@@ -1258,7 +1735,272 @@ function App() {
                 <div className="section-subtitle">{t('evaluation.subtitle')}</div>
               </div>
             </div>
-            <p className="section-subtitle" style={{ marginTop: '1rem' }}>{t('evaluation.comingSoon')}</p>
+
+            <div className="sub-section" style={{ marginTop: '1rem' }}>
+              <div className="sub-section-title">{t('evaluation.myEvaluation')}</div>
+              <div className="form-row">
+                <label>{t('evaluation.plan')}</label>
+                <select
+                  value={selectedEvaluationPlanId ?? ''}
+                  onChange={(e) => setSelectedEvaluationPlanId(e.target.value ? Number(e.target.value) : null)}
+                >
+                  {evaluationPlans.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.year} - {p.name} ({p.status})
+                    </option>
+                  ))}
+                  {evaluationPlans.length === 0 && <option value="">{t('evaluation.noPlan')}</option>}
+                </select>
+              </div>
+              {selectedEvaluationPlanId && (
+                <>
+                  {evaluationItemScores.length > 0 ? (
+                    <>
+                      <div className="list-card" style={{ marginTop: '0.5rem' }}>
+                        <div className="list-header">
+                          <span>{t('evaluation.item')}</span>
+                          <span>{t('evaluation.score')}</span>
+                          <span>{t('evaluation.comment')}</span>
+                        </div>
+                        {evaluationItemScores.map((it) => (
+                          <div key={it.id} className="list-row">
+                            <div className="list-row-main">
+                              <div className="list-title">{it.name}</div>
+                              <div className="list-meta">가중치 {it.weight}%</div>
+                            </div>
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              style={{ width: '4rem' }}
+                              value={it.my_score ?? ''}
+                              onChange={(e) => {
+                                const v = e.target.value ? Number(e.target.value) : 0
+                                setEvaluationItemScores((prev) =>
+                                  prev.map((p) => (p.id === it.id ? { ...p, my_score: v } : p)),
+                                )
+                              }}
+                            />
+                            <input
+                              type="text"
+                              style={{ flex: 1, minWidth: 0 }}
+                              value={it.my_comment ?? ''}
+                              onChange={(e) => {
+                                setEvaluationItemScores((prev) =>
+                                  prev.map((p) => (p.id === it.id ? { ...p, my_comment: e.target.value } : p)),
+                                )
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="form-actions" style={{ marginTop: '1rem' }}>
+                        <button
+                          type="button"
+                          className="primary-button"
+                          onClick={async () => {
+                            if (!selectedEvaluationPlanId) return
+                            try {
+                              setError(null)
+                              await postJson(`${API_BASE}/api/evaluations/my-scores`, {
+                                plan_id: selectedEvaluationPlanId,
+                                scores: evaluationItemScores.map((it) => ({
+                                  item_id: it.id,
+                                  score: it.my_score ?? 0,
+                                  comment: it.my_comment || null,
+                                })),
+                              }, headers)
+                              await loadEvaluationItemScores()
+                              await loadMyEvaluation()
+                            } catch (e) {
+                              setError(e instanceof Error ? e.message : 'Failed.')
+                            }
+                          }}
+                        >
+                          {t('employees.save')}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="form-row">
+                        <label>{t('evaluation.score')}</label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={myEvaluationForm.score}
+                          onChange={(e) => setMyEvaluationForm((f) => ({ ...f, score: Number(e.target.value) }))}
+                        />
+                      </div>
+                      <div className="form-row">
+                        <label>{t('evaluation.comment')}</label>
+                        <textarea
+                          value={myEvaluationForm.comment}
+                          onChange={(e) => setMyEvaluationForm((f) => ({ ...f, comment: e.target.value }))}
+                        />
+                      </div>
+                      <div className="form-actions">
+                        <button
+                          type="button"
+                          className="primary-button"
+                          onClick={async () => {
+                            if (!selectedEvaluationPlanId) return
+                            try {
+                              setError(null)
+                              await postJson(`${API_BASE}/api/evaluations/my-result`, {
+                                plan_id: selectedEvaluationPlanId,
+                                score: myEvaluationForm.score,
+                                comment: myEvaluationForm.comment,
+                              }, headers)
+                              await loadMyEvaluation()
+                            } catch (e) {
+                              setError(e instanceof Error ? e.message : 'Failed.')
+                            }
+                          }}
+                        >
+                          {t('employees.save')}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+
+            {(currentUser?.role === 'MANAGER' || currentUser?.role === 'ADMIN' || currentUser?.role === 'HR_ADMIN') && selectedEvaluationPlanId && evaluationItemScores.length > 0 && (
+              <div className="sub-section" style={{ marginTop: '2rem' }}>
+                <div className="sub-section-title">{t('evaluation.teamEvaluation')}</div>
+                <div className="form-row">
+                  <label>{t('evaluation.targetEmployee')}</label>
+                  <select
+                    value={teamEvalTargetEmpId ?? ''}
+                    onChange={(e) => {
+                      const id = e.target.value ? Number(e.target.value) : null
+                      setTeamEvalTargetEmpId(id)
+                      setTeamEvalScores({})
+                    }}
+                  >
+                    <option value="">{t('evaluation.selectTarget')}</option>
+                    {employees.map((emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.emp_no} {emp.first_name} {emp.last_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {teamEvalTargetEmpId && evaluationItemScores.length > 0 && (
+                  <>
+                    <div className="list-card" style={{ marginTop: '0.5rem' }}>
+                      {evaluationItemScores.map((it) => (
+                        <div key={it.id} className="list-row">
+                          <div className="list-row-main">
+                            <div className="list-title">{it.name}</div>
+                          </div>
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            style={{ width: '4rem' }}
+                            placeholder={t('evaluation.score')}
+                            value={teamEvalScores[it.id]?.score ?? ''}
+                            onChange={(e) => {
+                              const v = e.target.value ? Number(e.target.value) : 0
+                              setTeamEvalScores((prev) => ({ ...prev, [it.id]: { ...(prev[it.id] || {}), score: v } }))
+                            }}
+                          />
+                          <input
+                            type="text"
+                            style={{ flex: 1, minWidth: 0 }}
+                            placeholder={t('evaluation.comment')}
+                            value={teamEvalScores[it.id]?.comment ?? ''}
+                            onChange={(e) => {
+                              setTeamEvalScores((prev) => ({ ...prev, [it.id]: { ...(prev[it.id] || {}), comment: e.target.value } }))
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="form-actions" style={{ marginTop: '0.5rem' }}>
+                      <button
+                        type="button"
+                        className="primary-button"
+                        onClick={async () => {
+                        if (!selectedEvaluationPlanId) return
+                        try {
+                          setError(null)
+                          await postJson(`${API_BASE}/api/evaluations/team-scores`, {
+                            plan_id: selectedEvaluationPlanId,
+                            target_emp_id: teamEvalTargetEmpId,
+                            scores: evaluationItemScores.map((it) => ({
+                              item_id: it.id,
+                              score: teamEvalScores[it.id]?.score ?? 0,
+                              comment: teamEvalScores[it.id]?.comment ?? null,
+                            })),
+                          }, headers)
+                          setTeamEvalScores({})
+                        } catch (e) {
+                          setError(e instanceof Error ? e.message : 'Failed.')
+                        }
+                      }}
+                    >
+                      {t('employees.save')}
+                    </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {(currentUser?.role === 'ADMIN' || currentUser?.role === 'HR_ADMIN') && (
+              <div className="sub-section" style={{ marginTop: '2rem' }}>
+                <div className="sub-section-title">{t('evaluation.planManagement')}</div>
+                <div className="list-card">
+                  {evaluationPlans.map((p) => (
+                    <div key={p.id} className="list-row">
+                      <div className="list-row-main">
+                        <div className="list-title">
+                          {p.year} - {p.name}
+                        </div>
+                        <div className="list-meta">
+                          {p.status} · {p.start_date || '-'} ~ {p.end_date || '-'}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {evaluationPlans.length === 0 && (
+                    <div className="list-row">
+                      <div className="list-row-main">
+                        <div className="list-meta">{t('evaluation.noPlan')}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {(currentUser?.role === 'ADMIN' || currentUser?.role === 'HR_ADMIN') && selectedEvaluationPlanId && (
+              <div className="sub-section" style={{ marginTop: '2rem' }}>
+                <div className="sub-section-title">{t('evaluation.promotionCandidates')}</div>
+                <div className="list-card">
+                  {promotionCandidates.map((emp) => (
+                    <div key={emp.id} className="list-row">
+                      <div className="list-row-main">
+                        <div className="list-title">{emp.emp_no} {emp.first_name} {emp.last_name}</div>
+                        <div className="list-meta">{emp.email}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {promotionCandidates.length === 0 && (
+                    <div className="list-row">
+                      <div className="list-row-main">
+                        <div className="list-meta">{t('evaluation.noPromotionCandidates')}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </section>
         )}
 
@@ -1270,11 +2012,152 @@ function App() {
                 <div className="section-subtitle">{t('education.subtitle')}</div>
               </div>
             </div>
-            <p className="section-subtitle" style={{ marginTop: '1rem' }}>{t('education.comingSoon')}</p>
+
+            <div className="sub-section" style={{ marginTop: '1rem' }}>
+              <div className="sub-section-title">{t('education.courses')}</div>
+              <div className="list-card">
+                {trainingCourses.map((c) => (
+                  <div key={c.id} className="list-row">
+                    <div className="list-row-main">
+                      <div className="list-title">{c.code} - {c.name}</div>
+                      <div className="list-meta">{c.category || '-'}</div>
+                    </div>
+                  </div>
+                ))}
+                {trainingCourses.length === 0 && (
+                  <div className="list-row">
+                    <div className="list-row-main">
+                      <div className="list-meta">{t('education.noCourses')}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="sub-section" style={{ marginTop: '1.5rem' }}>
+              <div className="sub-section-title">{t('education.sessions')}</div>
+              <div className="list-card">
+                {trainingSessions.map((s) => {
+                  const course = trainingCourses.find((c) => c.id === s.course_id)
+                  return (
+                    <div key={s.id} className="list-row">
+                      <div className="list-row-main">
+                        <div className="list-title">{s.title}</div>
+                        <div className="list-meta">
+                          {course?.name || '-'} · {s.start_date || '-'} ~ {s.end_date || '-'}
+                        </div>
+                      </div>
+                      <div className="list-row-actions">
+                        <button
+                          type="button"
+                          className="primary-button"
+                          onClick={async () => {
+                            try {
+                              setError(null)
+                              await postJson(`${API_BASE}/api/education/enroll`, { session_id: s.id }, headers)
+                              await loadMyEnrollments()
+                            } catch (e) {
+                              setError(e instanceof Error ? e.message : 'Failed.')
+                            }
+                          }}
+                        >
+                          {t('education.enroll')}
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+                {trainingSessions.length === 0 && (
+                  <div className="list-row">
+                    <div className="list-row-main">
+                      <div className="list-meta">{t('education.noSessions')}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="sub-section" style={{ marginTop: '1.5rem' }}>
+              <div className="sub-section-title">{t('education.myEnrollments')}</div>
+              <div className="list-card">
+                {myEnrollments.map((enr) => {
+                  const session = trainingSessions.find((s) => s.id === enr.session_id)
+                  const course = session ? trainingCourses.find((c) => c.id === session.course_id) : null
+                  return (
+                    <div key={enr.id} className="list-row">
+                      <div className="list-row-main">
+                        <div className="list-title">{session?.title || `#${enr.session_id}`}</div>
+                        <div className="list-meta">
+                          {course?.name || '-'} · {t('education.status')}: {enr.status}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+                {myEnrollments.length === 0 && (
+                  <div className="list-row">
+                    <div className="list-row-main">
+                      <div className="list-meta">{t('education.noEnrollments')}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </section>
         )}
 
-        {activeTab === 'users' && currentUser?.username === 'admin' && (
+        {activeTab === 'benefits' && (
+          <section>
+            <div className="section-header">
+              <div>
+                <div className="section-title">{t('benefits.title')}</div>
+                <div className="section-subtitle">{t('benefits.subtitle')}</div>
+              </div>
+            </div>
+
+            <div className="sub-section" style={{ marginTop: '1rem' }}>
+              <div className="sub-section-title">{t('benefits.myBalances')}</div>
+              <div className="list-card">
+                {myPointBalances.map((b) => {
+                  const policy = benefitPolicies.find((p) => p.id === b.policy_id)
+                  return (
+                    <div key={b.id} className="list-row">
+                      <div className="list-row-main">
+                        <div className="list-title">{policy?.name || `#${b.policy_id}`}</div>
+                        <div className="list-meta">
+                          {b.year}년 · {t('benefits.balance')}: {b.balance.toLocaleString()}P
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+                {myPointBalances.length === 0 && (
+                  <div className="list-row">
+                    <div className="list-row-main">
+                      <div className="list-meta">{t('benefits.noBalances')}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="sub-section" style={{ marginTop: '1.5rem' }}>
+              <div className="sub-section-title">{t('benefits.policies')}</div>
+              <div className="list-card">
+                {benefitPolicies.map((p) => (
+                  <div key={p.id} className="list-row">
+                    <div className="list-row-main">
+                      <div className="list-title">{p.code} - {p.name}</div>
+                      <div className="list-meta">{p.policy_type} · 기본 {p.default_points.toLocaleString()}P</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'users' && (currentUser?.role === 'ADMIN' || currentUser?.role === 'HR_ADMIN') && (
           <section>
             <div className="section-header">
               <div>
@@ -1282,33 +2165,105 @@ function App() {
                 <div className="section-subtitle">{t('auth.usersSubtitle')}</div>
               </div>
             </div>
-            <div className="list-card">
+            {currentUser?.role === 'ADMIN' && (
+              <>
+                <div className="list-card">
+                  <div className="list-header">
+                    <span>{t('auth.username')}</span>
+                    <span>{t('auth.role')}</span>
+                    <span>{t('common.actions')}</span>
+                  </div>
+                  {users.map((u) => (
+                    <div key={u.id} className="list-row">
+                      <div className="list-row-main">
+                        <div className="list-title">{u.username}</div>
+                        <div className="list-meta">
+                          {u.is_active ? t('auth.active') : t('auth.inactive')} · {u.role}
+                        </div>
+                      </div>
+                      <div className="list-row-actions">
+                        <button
+                          type="button"
+                          onClick={() => { setResetPasswordUserId(u.id); setResetPasswordNew('') }}
+                        >
+                          {t('auth.resetPassword')}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="section-footer">
+                  <span>{t('auth.addUserHint')}</span>
+                  <button type="button" className="primary-button" onClick={() => { setAddUserForm({ username: '', password: '', role: 'EMPLOYEE' }); setShowAddUserModal(true) }}>
+                    {t('auth.addUser')}
+                  </button>
+                </div>
+              </>
+            )}
+
+            <div style={{ marginTop: '2rem' }}>
+              <div className="section-title">{t('permissions.title')}</div>
+              <div className="section-subtitle">{t('permissions.subtitle')}</div>
+            </div>
+            <div className="list-card" style={{ marginTop: '0.75rem' }}>
               <div className="list-header">
                 <span>{t('auth.username')}</span>
+                <span>{t('auth.role')}</span>
+                <span>{t('permissions.status')}</span>
                 <span>{t('common.actions')}</span>
               </div>
-              {users.map((u) => (
-                <div key={u.id} className="list-row">
-                  <div className="list-row-main">
-                    <div className="list-title">{u.username}</div>
-                    <div className="list-meta">{u.is_active ? t('auth.active') : t('auth.inactive')}</div>
+              {permissionRequests.map((r) => {
+                const target = users.find((u) => u.id === r.target_user_id)
+                return (
+                  <div key={r.id} className="list-row">
+                    <div className="list-row-main">
+                      <div className="list-title">{target?.username ?? `#${r.target_user_id}`}</div>
+                      <div className="list-meta">
+                        {t('permissions.requestedRole')}: {r.requested_role}
+                        {r.reason && ` · ${r.reason}`}
+                      </div>
+                    </div>
+                    <div className="list-row-actions">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            setError(null)
+                            await postJson(`${API_BASE}/api/permissions/requests/${r.id}/approve`, {}, headers)
+                            await loadPermissionRequests()
+                            await loadUsers()
+                          } catch (e) {
+                            setError(e instanceof Error ? e.message : 'Failed.')
+                          }
+                        }}
+                      >
+                        {t('permissions.approve')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            setError(null)
+                            await postJson(`${API_BASE}/api/permissions/requests/${r.id}/reject`, {}, headers)
+                            await loadPermissionRequests()
+                          } catch (e) {
+                            setError(e instanceof Error ? e.message : 'Failed.')
+                          }
+                        }}
+                      >
+                        {t('permissions.reject')}
+                      </button>
+                    </div>
                   </div>
-                  <div className="list-row-actions">
-                    <button
-                      type="button"
-                      onClick={() => { setResetPasswordUserId(u.id); setResetPasswordNew('') }}
-                    >
-                      {t('auth.resetPassword')}
-                    </button>
+                )
+              })}
+              {permissionRequests.length === 0 && (
+                <div className="list-row">
+                  <div className="list-row-main">
+                    <div className="list-meta">{t('permissions.empty')}</div>
                   </div>
                 </div>
-              ))}
-            </div>
-            <div className="section-footer">
-              <span>{t('auth.addUserHint')}</span>
-              <button type="button" className="primary-button" onClick={() => { setAddUserForm({ username: '', password: '' }); setShowAddUserModal(true) }}>
-                {t('auth.addUser')}
-              </button>
+              )}
             </div>
           </section>
         )}
@@ -1754,6 +2709,18 @@ function App() {
               <label>{t('auth.newPassword')}</label>
               <input type="password" value={addUserForm.password} onChange={(e) => setAddUserForm((f) => ({ ...f, password: e.target.value }))} />
             </div>
+            <div className="form-row">
+              <label>{t('auth.role')}</label>
+              <select
+                value={addUserForm.role}
+                onChange={(e) => setAddUserForm((f) => ({ ...f, role: e.target.value }))}
+              >
+                <option value="EMPLOYEE">EMPLOYEE</option>
+                <option value="MANAGER">MANAGER</option>
+                <option value="HR_ADMIN">HR_ADMIN</option>
+                <option value="ADMIN">ADMIN</option>
+              </select>
+            </div>
             <div className="form-actions">
               <button type="button" className="btn-secondary" onClick={() => setShowAddUserModal(false)}>{t('employees.cancel')}</button>
               <button type="button" className="primary-button" onClick={submitAddUser}>{t('employees.addBtn')}</button>
@@ -1774,6 +2741,70 @@ function App() {
               <button type="button" className="btn-secondary" onClick={() => setResetPasswordUserId(null)}>{t('employees.cancel')}</button>
               <button type="button" className="primary-button" onClick={submitResetPassword}>{t('employees.save')}</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showPermissionRequestModal && (
+        <div className="modal-overlay" onClick={() => setShowPermissionRequestModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-title">{t('permissions.requestTitle')}</div>
+            <div className="form-row">
+              <label>{t('permissions.requestedRole')}</label>
+              <select
+                value={permissionRequestForm.requested_role}
+                onChange={(e) => setPermissionRequestForm((f) => ({ ...f, requested_role: e.target.value }))}
+              >
+                <option value="MANAGER">MANAGER</option>
+                <option value="HR_ADMIN">HR_ADMIN</option>
+                <option value="PAYROLL_ADMIN">PAYROLL_ADMIN</option>
+              </select>
+            </div>
+            <div className="form-row">
+              <label>{t('permissions.reason')}</label>
+              <textarea
+                value={permissionRequestForm.reason}
+                onChange={(e) => setPermissionRequestForm((f) => ({ ...f, reason: e.target.value }))}
+              />
+            </div>
+            <div className="form-actions">
+              <button type="button" className="btn-secondary" onClick={() => setShowPermissionRequestModal(false)}>{t('employees.cancel')}</button>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={async () => {
+                  try {
+                    setError(null)
+                    await postJson(`${API_BASE}/api/permissions/requests`, permissionRequestForm, headers)
+                    await loadPermissionRequests()
+                    setShowPermissionRequestModal(false)
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : 'Failed.')
+                  }
+                }}
+              >
+                {t('permissions.submit')}
+              </button>
+            </div>
+            {myPermissionRequests.length > 0 && (
+              <div style={{ marginTop: '1rem' }}>
+                <div className="section-subtitle">{t('permissions.myRequests')}</div>
+                <div className="list-card" style={{ marginTop: '0.5rem' }}>
+                  {myPermissionRequests.map((r) => (
+                    <div key={r.id} className="list-row">
+                      <div className="list-row-main">
+                        <div className="list-title">
+                          {r.requested_role} ({r.status})
+                        </div>
+                        <div className="list-meta">
+                          {r.reason}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

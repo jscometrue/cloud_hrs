@@ -21,6 +21,10 @@ export default function Login({ apiBase, onSuccess }: Props) {
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'ok' | 'fail'>('idle')
   const [testMessage, setTestMessage] = useState<string>('')
   const [showForgotHint, setShowForgotHint] = useState(false)
+  const [resetUsername, setResetUsername] = useState('')
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetError, setResetError] = useState<string | null>(null)
+  const [resetLink, setResetLink] = useState<string | null>(null)
   const effectiveApiBase = apiBase
 
   useEffect(() => {
@@ -65,26 +69,39 @@ export default function Login({ apiBase, onSuccess }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    const u = (username || '').trim()
+    const p = password ?? ''
+    if (!u) {
+      setError(t('login.error'))
+      return
+    }
     setLoading(true)
     try {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 70000)
       const res = await fetch(`${effectiveApiBase}/api/auth/login`, {
         method: 'POST',
+        mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username: u, password: p }),
         signal: controller.signal,
       })
       clearTimeout(timeoutId)
+      const data = await res.json().catch(() => ({})) as { detail?: string; access_token?: string }
       if (!res.ok) {
         if (res.status === 404) {
           throw new Error(t('login.notFound'))
         }
-        const data = await res.json().catch(() => ({}))
-        throw new Error((data as { detail?: string }).detail || 'Login failed')
+        if (res.status === 403) {
+          throw new Error(t('login.verifyEmailFirst'))
+        }
+        throw new Error(data.detail || 'Login failed')
       }
-      const data = (await res.json()) as { access_token: string }
-      onSuccess(data.access_token)
+      const token = data.access_token
+      if (!token || typeof token !== 'string') {
+        throw new Error(t('login.error'))
+      }
+      onSuccess(token)
     } catch (err) {
       const msg = err instanceof Error ? err.message : ''
       const isNetwork = msg === 'Failed to fetch' || msg.includes('fetch') || (err instanceof Error && err.name === 'AbortError')
@@ -95,6 +112,37 @@ export default function Login({ apiBase, onSuccess }: Props) {
       }
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleRequestPasswordReset() {
+    const user = (resetUsername || username).trim()
+    setResetError(null)
+    setResetLink(null)
+    if (!user) {
+      setResetError(t('login.notFound'))
+      return
+    }
+    setResetLoading(true)
+    try {
+      const res = await fetch(`${effectiveApiBase}/api/auth/request-password-reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error((data as { detail?: string }).detail || 'Failed')
+      }
+      const token = (data as { token?: string }).token
+      if (token) {
+        const url = `${window.location.origin}${window.location.pathname}?reset=${token}`
+        setResetLink(url)
+      }
+    } catch (e) {
+      setResetError(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setResetLoading(false)
     }
   }
 
@@ -167,7 +215,41 @@ export default function Login({ apiBase, onSuccess }: Props) {
               {t('login.forgotPassword')}
             </button>
             {showForgotHint && (
-              <p style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: '0.5rem' }}>{t('login.forgotPasswordHint')}</p>
+              <div style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: '0.5rem' }}>
+                <p>{t('login.forgotPasswordHint')}</p>
+                <div className="form-row" style={{ marginTop: '0.5rem' }}>
+                  <label style={{ fontSize: '0.75rem' }}>{t('login.username')}</label>
+                  <input
+                    type="text"
+                    value={resetUsername}
+                    onChange={(e) => setResetUsername(e.target.value)}
+                    placeholder={t('login.placeholderUsername')}
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}
+                  onClick={handleRequestPasswordReset}
+                  disabled={resetLoading}
+                >
+                  {t('login.requestPasswordReset')}
+                </button>
+                {resetError && (
+                  <p style={{ color: '#fecaca', marginTop: '0.25rem' }}>{resetError}</p>
+                )}
+                {resetLink && (
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <p>{t('login.resetRequested')}</p>
+                    <a
+                      href={resetLink}
+                      style={{ color: 'var(--primary, #60a5fa)' }}
+                    >
+                      {resetLink}
+                    </a>
+                  </div>
+                )}
+              </div>
             )}
           </div>
           <div className="form-actions" style={{ marginTop: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>

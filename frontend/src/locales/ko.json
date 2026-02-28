@@ -30,12 +30,16 @@
     "testFailNetwork": "네트워크 오류(백엔드 슬립·주소 확인)",
     "testNoUrl": "주소를 입력하세요",
     "forgotPassword": "비밀번호 찾기",
-    "forgotPasswordHint": "관리자(admin)에게 비밀번호 재설정을 요청하세요."
+    "forgotPasswordHint": "아래에서 사용자 ID를 입력하고 '비밀번호 초기화 요청'을 누르면 재설정 링크가 표시됩니다.",
+    "verifyEmailFirst": "이메일 인증 후 로그인할 수 있습니다.",
+    "requestPasswordReset": "비밀번호 초기화 요청",
+    "resetRequested": "아래 링크를 열어 새 비밀번호를 설정하세요."
   },
   "auth": {
     "changePassword": "비밀번호 변경",
     "currentPassword": "현재 비밀번호",
     "newPassword": "새 비밀번호",
+    "role": "권한(역할)",
     "users": "사용자 관리",
     "usersSubtitle": "로그인 계정 추가·비밀번호 재설정",
     "username": "사용자 ID",
@@ -45,6 +49,20 @@
     "addUser": "신규 사용자",
     "addUserHint": "로그인할 수 있는 계정을 추가합니다."
   },
+  "permissions": {
+    "title": "권한 요청 승인",
+    "subtitle": "추가 권한 요청을 검토·승인/반려합니다.",
+    "status": "상태",
+    "requestedRole": "요청 역할",
+    "approve": "승인",
+    "reject": "반려",
+    "empty": "대기 중인 권한 요청이 없습니다.",
+    "request": "권한 요청",
+    "requestTitle": "추가 권한 요청",
+    "reason": "요청 사유",
+    "submit": "요청 보내기",
+    "myRequests": "내 권한 요청 내역"
+  },
   "nav": {
     "dashboard": "대시보드",
     "employees": "직원",
@@ -53,6 +71,7 @@
     "payroll": "급여",
     "evaluation": "평가",
     "education": "교육",
+    "benefits": "복리후생",
     "users": "사용자",
     "logout": "로그아웃"
   },
@@ -64,7 +83,9 @@
     "departments": "부서 수",
     "payGroups": "급여그룹 수",
     "payRuns": "급여 차수",
-    "leavePending": "휴가 대기"
+    "leavePending": "휴가 대기",
+    "turnoverRate": "이직률",
+    "totalPayroll": "총 급여"
   },
   "employees": {
     "title": "직원",
@@ -133,6 +154,9 @@
     "leaveRequests": "휴가 신청",
     "leaveType": "휴가 유형",
     "hours": "시간",
+    "status": "상태",
+    "approve": "승인",
+    "reject": "반려",
     "requestLeave": "휴가 신청",
     "monthlySummary": "월별 집계",
     "startTime": "시작 시각",
@@ -141,7 +165,12 @@
     "startDatetime": "시작 일시",
     "endDatetime": "종료 일시",
     "reason": "사유",
-    "submitRequest": "신청"
+    "submitRequest": "신청",
+    "timeLogs": "출퇴근 기록",
+    "recordInOut": "출근/퇴근 기록",
+    "logDatetime": "일시",
+    "logType": "유형",
+    "noTimeLogs": "기록이 없습니다."
   },
   "payroll": {
     "title": "급여 차수",
@@ -168,12 +197,40 @@
   "evaluation": {
     "title": "평가·승진",
     "subtitle": "인사평가 및 승진",
-    "comingSoon": "준비 중입니다."
+    "comingSoon": "준비 중입니다.",
+    "myEvaluation": "내 평가",
+    "plan": "평가 계획",
+    "noPlan": "등록된 평가 계획이 없습니다.",
+    "score": "평가 점수(0~100)",
+    "comment": "코멘트",
+    "planManagement": "평가 계획 목록",
+    "item": "평가 항목",
+    "teamEvaluation": "팀 평가",
+    "targetEmployee": "평가 대상",
+    "selectTarget": "대상 선택",
+    "promotionCandidates": "승진 후보",
+    "noPromotionCandidates": "승진 후보가 없습니다."
   },
   "education": {
     "title": "교육·역량",
     "subtitle": "교육이력 및 역량관리",
-    "comingSoon": "준비 중입니다."
+    "comingSoon": "준비 중입니다.",
+    "courses": "교육 과정",
+    "sessions": "교육 회차",
+    "myEnrollments": "내 수강 내역",
+    "enroll": "수강 신청",
+    "status": "상태",
+    "noCourses": "등록된 과정이 없습니다.",
+    "noSessions": "등록된 회차가 없습니다.",
+    "noEnrollments": "수강 내역이 없습니다."
+  },
+  "benefits": {
+    "title": "복리후생",
+    "subtitle": "복지 포인트 및 혜택",
+    "myBalances": "내 포인트 잔액",
+    "policies": "복지 정책",
+    "balance": "잔액",
+    "noBalances": "포인트 잔액이 없습니다."
   },
   "common": {
     "loading": "로딩 중…",
