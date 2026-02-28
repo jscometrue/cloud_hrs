@@ -4,6 +4,16 @@ from decimal import Decimal
 from pydantic import BaseModel
 
 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
 class DepartmentBase(BaseModel):
     code: str
     name: str
@@ -11,6 +21,11 @@ class DepartmentBase(BaseModel):
 
 class DepartmentCreate(DepartmentBase):
     pass
+
+
+class DepartmentUpdate(BaseModel):
+    code: str | None = None
+    name: str | None = None
 
 
 class DepartmentRead(DepartmentBase):
@@ -36,11 +51,111 @@ class EmployeeCreate(EmployeeBase):
     pass
 
 
+class EmployeeUpdate(BaseModel):
+    emp_no: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    hire_date: date | None = None
+    status: str | None = None
+    dept_id: int | None = None
+    pay_group_id: int | None = None
+
+
 class EmployeeRead(EmployeeBase):
     id: int
 
     class Config:
         from_attributes = True
+
+
+class WorkTypeBase(BaseModel):
+    code: str
+    name: str
+    start_time: str = "09:00"
+    end_time: str = "18:00"
+    break_minutes: int = 60
+
+
+class WorkTypeCreate(WorkTypeBase):
+    pass
+
+
+class WorkTypeUpdate(BaseModel):
+    code: str | None = None
+    name: str | None = None
+    start_time: str | None = None
+    end_time: str | None = None
+    break_minutes: int | None = None
+
+
+class WorkTypeRead(WorkTypeBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+class LeaveRequestCreate(BaseModel):
+    emp_id: int
+    leave_type: str
+    start_datetime: datetime
+    end_datetime: datetime
+    hours: Decimal
+    reason: str | None = None
+
+
+class LeaveRequestRead(BaseModel):
+    id: int
+    emp_id: int
+    leave_type: str
+    start_datetime: datetime
+    end_datetime: datetime
+    hours: Decimal
+    status: str
+    reason: str | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class PayItemBase(BaseModel):
+    code: str
+    name: str
+    item_type: str = "EARNING"
+    taxable: bool = True
+    calculation_type: str = "FIXED"
+    default_amount: Decimal | None = None
+
+
+class PayItemCreate(PayItemBase):
+    pass
+
+
+class PayItemUpdate(BaseModel):
+    code: str | None = None
+    name: str | None = None
+    item_type: str | None = None
+    taxable: bool | None = None
+    calculation_type: str | None = None
+    default_amount: Decimal | None = None
+
+
+class PayItemRead(PayItemBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+class DashboardStats(BaseModel):
+    total_employees: int
+    active_employees: int
+    department_count: int
+    pay_group_count: int
+    pay_run_count: int
+    leave_requests_pending: int
 
 
 class AttendanceMonthSummaryBase(BaseModel):
@@ -74,6 +189,14 @@ class PayGroupBase(BaseModel):
 
 class PayGroupCreate(PayGroupBase):
     pass
+
+
+class PayGroupUpdate(BaseModel):
+    code: str | None = None
+    name: str | None = None
+    pay_cycle: str | None = None
+    cutoff_day: int | None = None
+    pay_day: int | None = None
 
 
 class PayGroupRead(PayGroupBase):
