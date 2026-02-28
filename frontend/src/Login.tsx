@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import './App.css'
 
@@ -19,6 +19,10 @@ export default function Login({ apiBase, onSuccess }: Props) {
   const [apiBaseInput, setApiBaseInput] = useState(apiBase)
   const [apiBaseSaved, setApiBaseSaved] = useState(false)
   const effectiveApiBase = apiBase
+
+  useEffect(() => {
+    fetch(`${apiBase}/health`, { method: 'GET', mode: 'cors' }).catch(() => {})
+  }, [apiBase])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -47,7 +51,7 @@ export default function Login({ apiBase, onSuccess }: Props) {
       const msg = err instanceof Error ? err.message : ''
       const isNetwork = msg === 'Failed to fetch' || msg.includes('fetch') || (err instanceof Error && err.name === 'AbortError')
       if (isNetwork) {
-        setError(t('login.failedToFetch') + ' (URL: ' + effectiveApiBase + ')')
+        setError(t('login.failedToFetch'))
       } else {
         setError(msg || t('login.error'))
       }
@@ -73,11 +77,18 @@ export default function Login({ apiBase, onSuccess }: Props) {
             {t('login.title')}
           </div>
           {error && (
-            <div
-              className="section-subtitle"
-              style={{ color: '#fecaca', marginBottom: '0.75rem', wordBreak: 'break-all' }}
-            >
-              {error}
+            <div style={{ marginBottom: '0.75rem' }}>
+              <div
+                className="section-subtitle"
+                style={{ color: '#fecaca', wordBreak: 'break-all' }}
+              >
+                {error}
+              </div>
+              {error === t('login.failedToFetch') && (
+                <p style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: '0.5rem' }}>
+                  {t('login.failedToFetchHint')}
+                </p>
+              )}
             </div>
           )}
           <div className="form-row">
@@ -102,7 +113,7 @@ export default function Login({ apiBase, onSuccess }: Props) {
               required
             />
           </div>
-          <div className="form-actions" style={{ marginTop: '1.25rem' }}>
+          <div className="form-actions" style={{ marginTop: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <button
               type="submit"
               className="primary-button"
@@ -110,6 +121,15 @@ export default function Login({ apiBase, onSuccess }: Props) {
             >
               {loading ? t('login.loggingIn') : t('login.submit')}
             </button>
+            {error && (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => { setError(null); setLoading(false) }}
+              >
+                {t('login.retry')}
+              </button>
+            )}
           </div>
           <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border, #374151)' }}>
             <button
