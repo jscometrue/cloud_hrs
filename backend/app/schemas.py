@@ -14,6 +14,29 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class UserCreate(BaseModel):
+    username: str
+    password: str
+
+
+class UserRead(BaseModel):
+    id: int
+    username: str
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+
+class ResetPasswordRequest(BaseModel):
+    new_password: str
+
+
 class DepartmentBase(BaseModel):
     code: str
     name: str

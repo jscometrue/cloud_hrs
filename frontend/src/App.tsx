@@ -99,7 +99,13 @@ type DashboardStats = {
   leave_requests_pending: number
 }
 
-type TabKey = 'dashboard' | 'employees' | 'organization' | 'attendance' | 'payroll' | 'evaluation' | 'education'
+type User = {
+  id: number
+  username: string
+  is_active: boolean
+}
+
+type TabKey = 'dashboard' | 'employees' | 'organization' | 'attendance' | 'payroll' | 'evaluation' | 'education' | 'users'
 
 const API_BASE_STORAGE_KEY = 'jscorp_hr_api_base'
 
@@ -269,6 +275,15 @@ function App() {
     default_amount: null as number | null,
   })
 
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [users, setUsers] = useState<User[]>([])
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
+  const [changePasswordForm, setChangePasswordForm] = useState({ current_password: '', new_password: '' })
+  const [showAddUserModal, setShowAddUserModal] = useState(false)
+  const [addUserForm, setAddUserForm] = useState({ username: '', password: '' })
+  const [resetPasswordUserId, setResetPasswordUserId] = useState<number | null>(null)
+  const [resetPasswordNew, setResetPasswordNew] = useState('')
+
   const currentYearMonth = new Date().toISOString().slice(0, 7).replace('-', '')
 
   const headers = authHeaders(token)
@@ -341,6 +356,26 @@ function App() {
     setLeaveRequests(list)
   }, [token])
 
+  const loadCurrentUser = useCallback(async () => {
+    if (!token) return
+    try {
+      const me = await fetchJson<User>(`${API_BASE}/api/auth/me`, headers)
+      setCurrentUser(me)
+    } catch {
+      setCurrentUser(null)
+    }
+  }, [token])
+
+  const loadUsers = useCallback(async () => {
+    if (!token) return
+    try {
+      const list = await fetchJson<User[]>(`${API_BASE}/api/users`, headers)
+      setUsers(list)
+    } catch {
+      setUsers([])
+    }
+  }, [token])
+
   useEffect(() => {
     async function bootstrap() {
       try {
@@ -356,6 +391,7 @@ function App() {
           loadDashboardStats(),
           loadWorkTypes(),
           loadLeaveRequests(),
+          loadCurrentUser(),
         ])
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load JSCORP HR data.')
@@ -364,7 +400,11 @@ function App() {
       }
     }
     void bootstrap()
-  }, [loadEmployees, loadDepartments, loadPayGroups, loadPayItems, loadAttendance, loadPayRuns, loadDashboardStats, loadWorkTypes, loadLeaveRequests])
+  }, [loadEmployees, loadDepartments, loadPayGroups, loadPayItems, loadAttendance, loadPayRuns, loadDashboardStats, loadWorkTypes, loadLeaveRequests, loadCurrentUser])
+
+  useEffect(() => {
+    if (activeTab === 'users' && currentUser?.username === 'admin' && token) loadUsers()
+  }, [activeTab, currentUser?.username, token, loadUsers])
 
   async function handleSelectRun(runId: number) {
     try {
@@ -658,6 +698,42 @@ function App() {
     }
   }
 
+  async function submitChangePassword() {
+    try {
+      setError(null)
+      await postJson(`${API_BASE}/api/auth/change-password`, changePasswordForm, headers)
+      setShowChangePasswordModal(false)
+      setChangePasswordForm({ current_password: '', new_password: '' })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed.')
+    }
+  }
+
+  async function submitAddUser() {
+    try {
+      setError(null)
+      await postJson(`${API_BASE}/api/users`, addUserForm, headers)
+      setShowAddUserModal(false)
+      setAddUserForm({ username: '', password: '' })
+      await loadUsers()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed.')
+    }
+  }
+
+  async function submitResetPassword() {
+    if (resetPasswordUserId == null) return
+    try {
+      setError(null)
+      await patchJson(`${API_BASE}/api/users/${resetPasswordUserId}/password`, { new_password: resetPasswordNew }, headers)
+      setResetPasswordUserId(null)
+      setResetPasswordNew('')
+      await loadUsers()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed.')
+    }
+  }
+
   const activeEmpCount = employees.filter((e) => e.status === 'ACTIVE').length
 
   return (
@@ -695,6 +771,14 @@ function App() {
               onClick={() => i18n.changeLanguage('en')}
             >
               EN
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+              onClick={() => { setChangePasswordForm({ current_password: '', new_password: '' }); setShowChangePasswordModal(true) }}
+            >
+              {t('auth.changePassword')}
             </button>
             <button
               type="button"
@@ -767,6 +851,16 @@ function App() {
             <span className="pill-dot" />
             {t('nav.education')}
           </button>
+          {currentUser?.username === 'admin' && (
+            <button
+              type="button"
+              className={`tab-pill ${activeTab === 'users' ? 'active' : ''}`}
+              onClick={() => setActiveTab('users')}
+            >
+              <span className="pill-dot" />
+              {t('nav.users')}
+            </button>
+          )}
         </nav>
 
         {loading && (
@@ -1179,6 +1273,45 @@ function App() {
             <p className="section-subtitle" style={{ marginTop: '1rem' }}>{t('education.comingSoon')}</p>
           </section>
         )}
+
+        {activeTab === 'users' && currentUser?.username === 'admin' && (
+          <section>
+            <div className="section-header">
+              <div>
+                <div className="section-title">{t('auth.users')}</div>
+                <div className="section-subtitle">{t('auth.usersSubtitle')}</div>
+              </div>
+            </div>
+            <div className="list-card">
+              <div className="list-header">
+                <span>{t('auth.username')}</span>
+                <span>{t('common.actions')}</span>
+              </div>
+              {users.map((u) => (
+                <div key={u.id} className="list-row">
+                  <div className="list-row-main">
+                    <div className="list-title">{u.username}</div>
+                    <div className="list-meta">{u.is_active ? t('auth.active') : t('auth.inactive')}</div>
+                  </div>
+                  <div className="list-row-actions">
+                    <button
+                      type="button"
+                      onClick={() => { setResetPasswordUserId(u.id); setResetPasswordNew('') }}
+                    >
+                      {t('auth.resetPassword')}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="section-footer">
+              <span>{t('auth.addUserHint')}</span>
+              <button type="button" className="primary-button" onClick={() => { setAddUserForm({ username: '', password: '' }); setShowAddUserModal(true) }}>
+                {t('auth.addUser')}
+              </button>
+            </div>
+          </section>
+        )}
       </div>
 
       {/* Employee add/edit modal */}
@@ -1584,6 +1717,62 @@ function App() {
             <div className="form-actions">
               <button type="button" className="btn-secondary" onClick={() => setShowPayItemModal(false)}>{t('employees.cancel')}</button>
               <button type="button" className="primary-button" onClick={submitPayItem}>{editingPayItem ? t('employees.save') : t('employees.addBtn')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showChangePasswordModal && (
+        <div className="modal-overlay" onClick={() => setShowChangePasswordModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-title">{t('auth.changePassword')}</div>
+            <div className="form-row">
+              <label>{t('auth.currentPassword')}</label>
+              <input type="password" value={changePasswordForm.current_password} onChange={(e) => setChangePasswordForm((f) => ({ ...f, current_password: e.target.value }))} />
+            </div>
+            <div className="form-row">
+              <label>{t('auth.newPassword')}</label>
+              <input type="password" value={changePasswordForm.new_password} onChange={(e) => setChangePasswordForm((f) => ({ ...f, new_password: e.target.value }))} />
+            </div>
+            <div className="form-actions">
+              <button type="button" className="btn-secondary" onClick={() => setShowChangePasswordModal(false)}>{t('employees.cancel')}</button>
+              <button type="button" className="primary-button" onClick={submitChangePassword}>{t('employees.save')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddUserModal && (
+        <div className="modal-overlay" onClick={() => setShowAddUserModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-title">{t('auth.addUser')}</div>
+            <div className="form-row">
+              <label>{t('auth.username')}</label>
+              <input value={addUserForm.username} onChange={(e) => setAddUserForm((f) => ({ ...f, username: e.target.value }))} placeholder="user1" />
+            </div>
+            <div className="form-row">
+              <label>{t('auth.newPassword')}</label>
+              <input type="password" value={addUserForm.password} onChange={(e) => setAddUserForm((f) => ({ ...f, password: e.target.value }))} />
+            </div>
+            <div className="form-actions">
+              <button type="button" className="btn-secondary" onClick={() => setShowAddUserModal(false)}>{t('employees.cancel')}</button>
+              <button type="button" className="primary-button" onClick={submitAddUser}>{t('employees.addBtn')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {resetPasswordUserId != null && (
+        <div className="modal-overlay" onClick={() => setResetPasswordUserId(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-title">{t('auth.resetPassword')}</div>
+            <div className="form-row">
+              <label>{t('auth.newPassword')}</label>
+              <input type="password" value={resetPasswordNew} onChange={(e) => setResetPasswordNew(e.target.value)} />
+            </div>
+            <div className="form-actions">
+              <button type="button" className="btn-secondary" onClick={() => setResetPasswordUserId(null)}>{t('employees.cancel')}</button>
+              <button type="button" className="primary-button" onClick={submitResetPassword}>{t('employees.save')}</button>
             </div>
           </div>
         </div>

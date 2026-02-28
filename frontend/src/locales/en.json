@@ -28,7 +28,22 @@
     "testOk": "Connected",
     "testFail": "Connection failed",
     "testFailNetwork": "Network error (backend sleeping or wrong URL)",
-    "testNoUrl": "Enter URL"
+    "testNoUrl": "Enter URL",
+    "forgotPassword": "Forgot password?",
+    "forgotPasswordHint": "Ask the administrator (admin) to reset your password."
+  },
+  "auth": {
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "users": "User management",
+    "usersSubtitle": "Add login accounts and reset passwords",
+    "username": "Username",
+    "active": "Active",
+    "inactive": "Inactive",
+    "resetPassword": "Reset password",
+    "addUser": "Add user",
+    "addUserHint": "Add accounts that can log in."
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -38,6 +53,7 @@
     "payroll": "Payroll",
     "evaluation": "Evaluation",
     "education": "Education",
+    "users": "Users",
     "logout": "Logout"
   },
   "dashboard": {

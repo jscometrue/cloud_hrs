@@ -20,6 +20,7 @@ export default function Login({ apiBase, onSuccess }: Props) {
   const [apiBaseSaved, setApiBaseSaved] = useState(false)
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'ok' | 'fail'>('idle')
   const [testMessage, setTestMessage] = useState<string>('')
+  const [showForgotHint, setShowForgotHint] = useState(false)
   const effectiveApiBase = apiBase
 
   useEffect(() => {
@@ -157,6 +158,17 @@ export default function Login({ apiBase, onSuccess }: Props) {
               autoComplete="current-password"
               required
             />
+            <button
+              type="button"
+              className="btn-secondary"
+              style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}
+              onClick={() => setShowForgotHint(!showForgotHint)}
+            >
+              {t('login.forgotPassword')}
+            </button>
+            {showForgotHint && (
+              <p style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: '0.5rem' }}>{t('login.forgotPasswordHint')}</p>
+            )}
           </div>
           <div className="form-actions" style={{ marginTop: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <button

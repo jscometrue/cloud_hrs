@@ -146,6 +146,68 @@ def login(
     return schemas.Token(access_token=auth.create_access_token(user.username))
 
 
+@app.get("/api/auth/me", response_model=schemas.UserRead)
+def get_me(
+    current_user: models.User = Depends(auth.get_current_user),
+) -> schemas.UserRead:
+    return current_user
+
+
+@app.post("/api/auth/change-password")
+def change_password(
+    payload: schemas.ChangePasswordRequest,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+) -> dict[str, str]:
+    if not auth.verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is wrong")
+    user = db.query(models.User).filter(models.User.id == current_user.id).first()
+    user.password_hash = auth.get_password_hash(payload.new_password)
+    db.commit()
+    return {"message": "Password updated"}
+
+
+@app.get("/api/users", response_model=list[schemas.UserRead])
+def list_users(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_admin),
+) -> list[schemas.UserRead]:
+    return db.query(models.User).order_by(models.User.username).all()
+
+
+@app.post("/api/users", response_model=schemas.UserRead, status_code=201)
+def create_user(
+    payload: schemas.UserCreate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_admin),
+) -> schemas.UserRead:
+    if db.query(models.User).filter(models.User.username == payload.username).first():
+        raise HTTPException(status_code=400, detail="Username already exists")
+    user = models.User(
+        username=payload.username,
+        password_hash=auth.get_password_hash(payload.password),
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@app.patch("/api/users/{user_id}/password")
+def reset_user_password(
+    user_id: int,
+    payload: schemas.ResetPasswordRequest,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_admin),
+) -> dict[str, str]:
+    user = db.get(models.User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.password_hash = auth.get_password_hash(payload.new_password)
+    db.commit()
+    return {"message": "Password reset"}
+
+
 # ---- Departments (Organization) ----
 @app.get("/api/departments", response_model=list[schemas.DepartmentRead])
 def list_departments(

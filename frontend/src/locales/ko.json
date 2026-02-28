@@ -28,7 +28,22 @@
     "testOk": "연결 성공",
     "testFail": "연결 실패",
     "testFailNetwork": "네트워크 오류(백엔드 슬립·주소 확인)",
-    "testNoUrl": "주소를 입력하세요"
+    "testNoUrl": "주소를 입력하세요",
+    "forgotPassword": "비밀번호 찾기",
+    "forgotPasswordHint": "관리자(admin)에게 비밀번호 재설정을 요청하세요."
+  },
+  "auth": {
+    "changePassword": "비밀번호 변경",
+    "currentPassword": "현재 비밀번호",
+    "newPassword": "새 비밀번호",
+    "users": "사용자 관리",
+    "usersSubtitle": "로그인 계정 추가·비밀번호 재설정",
+    "username": "사용자 ID",
+    "active": "활성",
+    "inactive": "비활성",
+    "resetPassword": "비밀번호 재설정",
+    "addUser": "신규 사용자",
+    "addUserHint": "로그인할 수 있는 계정을 추가합니다."
   },
   "nav": {
     "dashboard": "대시보드",
@@ -38,6 +53,7 @@
     "payroll": "급여",
     "evaluation": "평가",
     "education": "교육",
+    "users": "사용자",
     "logout": "로그아웃"
   },
   "dashboard": {
