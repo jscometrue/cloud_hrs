@@ -15,13 +15,20 @@
     "loggingIn": "Signing in…",
     "notFound": "Login server not found. Set VITE_API_BASE_URL to your backend URL in the frontend service and redeploy.",
     "failedToFetch": "Cannot reach the backend. Use 'API address' below to set the backend URL, save, then try again.",
-    "failedToFetchHint": "Render free tier sleeps after 15 min of inactivity. Wait 1–2 minutes and click 'Retry', or check the backend service is running in the Render dashboard.",
+    "failedToFetchHint": "Render free tier sleeps after 15 min of inactivity. Click 'Open backend URL' below to open the backend in a new tab, wait 1–2 min for it to load, then try logging in here.",
+    "openBackendUrl": "Open backend URL (new tab)",
     "retry": "Retry",
     "apiSetting": "API address",
     "apiBaseUrl": "Backend URL (no trailing slash)",
     "saveAndReload": "Save and reload",
     "reloading": "Reloading…",
-    "apiSettingHint": "On Failed to fetch, enter your Render backend URL here and save. e.g. https://jscorp-hr-backend.onrender.com"
+    "apiSettingHint": "On Failed to fetch, enter your Render backend URL here and save. e.g. https://jscorp-hr-backend.onrender.com",
+    "testConnection": "Test connection",
+    "testing": "Testing…",
+    "testOk": "Connected",
+    "testFail": "Connection failed",
+    "testFailNetwork": "Network error (backend sleeping or wrong URL)",
+    "testNoUrl": "Enter URL"
   },
   "nav": {
     "dashboard": "Dashboard",

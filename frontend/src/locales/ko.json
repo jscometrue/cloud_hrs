@@ -15,13 +15,20 @@
     "loggingIn": "로그인 중…",
     "notFound": "로그인 서버를 찾을 수 없습니다. 배포 설정에서 VITE_API_BASE_URL을 백엔드 주소로 넣은 뒤 프론트엔드를 다시 배포해 주세요.",
     "failedToFetch": "백엔드에 연결할 수 없습니다. 아래 'API 주소 설정'에서 백엔드 주소를 입력해 저장 후 다시 로그인해 보세요.",
-    "failedToFetchHint": "Render 무료 플랜은 15분 비활성 시 슬립됩니다. 1~2분 기다린 뒤 '다시 시도'를 누르거나, Render 대시보드에서 백엔드 서비스가 실행 중인지 확인하세요.",
+    "failedToFetchHint": "Render 무료 플랜은 15분 비활성 시 슬립됩니다. 아래 '백엔드 주소 열기'를 눌러 새 탭에서 백엔드를 먼저 연 뒤, 로드될 때까지 1~2분 기다린 다음 이 화면에서 로그인해 보세요.",
+    "openBackendUrl": "백엔드 주소 열기 (새 탭)",
     "retry": "다시 시도",
     "apiSetting": "API 주소 설정",
     "apiBaseUrl": "백엔드 주소 (끝에 / 없이)",
     "saveAndReload": "저장 후 새로고침",
     "reloading": "새로고침 중…",
-    "apiSettingHint": "Failed to fetch 시 Render 백엔드 URL을 여기에 입력한 뒤 저장하세요. 예: https://jscorp-hr-backend.onrender.com"
+    "apiSettingHint": "Failed to fetch 시 Render 백엔드 URL을 여기에 입력한 뒤 저장하세요. 예: https://jscorp-hr-backend.onrender.com",
+    "testConnection": "연결 테스트",
+    "testing": "연결 확인 중…",
+    "testOk": "연결 성공",
+    "testFail": "연결 실패",
+    "testFailNetwork": "네트워크 오류(백엔드 슬립·주소 확인)",
+    "testNoUrl": "주소를 입력하세요"
   },
   "nav": {
     "dashboard": "대시보드",

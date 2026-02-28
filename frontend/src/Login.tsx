@@ -18,11 +18,48 @@ export default function Login({ apiBase, onSuccess }: Props) {
   const [showApiSetting, setShowApiSetting] = useState(false)
   const [apiBaseInput, setApiBaseInput] = useState(apiBase)
   const [apiBaseSaved, setApiBaseSaved] = useState(false)
+  const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'ok' | 'fail'>('idle')
+  const [testMessage, setTestMessage] = useState<string>('')
   const effectiveApiBase = apiBase
 
   useEffect(() => {
-    fetch(`${apiBase}/health`, { method: 'GET', mode: 'cors' }).catch(() => {})
+    const url = `${apiBase}/health`
+    const ctrl = new AbortController()
+    const t = setTimeout(() => ctrl.abort(), 15000)
+    fetch(url, { method: 'GET', mode: 'cors', signal: ctrl.signal })
+      .then(() => clearTimeout(t))
+      .catch(() => clearTimeout(t))
   }, [apiBase])
+
+  async function testConnection() {
+    const base = apiBaseInput.trim().replace(/\/$/, '')
+    if (!base) {
+      setTestStatus('fail')
+      setTestMessage(t('login.testNoUrl'))
+      return
+    }
+    setTestStatus('testing')
+    setTestMessage('')
+    const url = `${base}/health`
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 25000)
+    try {
+      const res = await fetch(url, { method: 'GET', mode: 'cors', signal: controller.signal })
+      clearTimeout(timeoutId)
+      if (res.ok) {
+        setTestStatus('ok')
+        setTestMessage(t('login.testOk'))
+      } else {
+        setTestStatus('fail')
+        setTestMessage(t('login.testFail') + ` (${res.status})`)
+      }
+    } catch (e) {
+      clearTimeout(timeoutId)
+      setTestStatus('fail')
+      const msg = e instanceof Error ? e.message : String(e)
+      setTestMessage(t('login.testFail') + ': ' + (msg === 'Failed to fetch' ? t('login.testFailNetwork') : msg))
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -85,9 +122,17 @@ export default function Login({ apiBase, onSuccess }: Props) {
                 {error}
               </div>
               {error === t('login.failedToFetch') && (
-                <p style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: '0.5rem' }}>
-                  {t('login.failedToFetchHint')}
-                </p>
+                <div style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: '0.5rem' }}>
+                  <p>{t('login.failedToFetchHint')}</p>
+                  <a
+                    href={effectiveApiBase}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: 'inline-block', marginTop: '0.5rem', color: 'var(--primary, #60a5fa)' }}
+                  >
+                    {t('login.openBackendUrl')}
+                  </a>
+                </div>
               )}
             </div>
           )}
@@ -146,10 +191,27 @@ export default function Login({ apiBase, onSuccess }: Props) {
                 <input
                   type="url"
                   value={apiBaseInput}
-                  onChange={(e) => setApiBaseInput(e.target.value)}
+                  onChange={(e) => { setApiBaseInput(e.target.value); setTestStatus('idle') }}
                   placeholder="https://jscorp-hr-backend.onrender.com"
                   style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem', marginBottom: '0.5rem' }}
                 />
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    style={{ fontSize: '0.8rem' }}
+                    onClick={testConnection}
+                    disabled={testStatus === 'testing'}
+                  >
+                    {testStatus === 'testing' ? t('login.testing') : t('login.testConnection')}
+                  </button>
+                  {testStatus === 'ok' && (
+                    <span style={{ fontSize: '0.8rem', color: 'var(--success, #34d399)' }}>{testMessage}</span>
+                  )}
+                  {testStatus === 'fail' && (
+                    <span style={{ fontSize: '0.8rem', color: '#fecaca' }}>{testMessage}</span>
+                  )}
+                </div>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                   <button
                     type="button"
