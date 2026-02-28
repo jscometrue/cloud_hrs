@@ -1,3 +1,4 @@
+import bcrypt
 from datetime import date, datetime
 
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -105,9 +106,11 @@ def seed_sample_data(db: Session) -> None:
 def seed_user(db: Session) -> None:
     if db.query(models.User).filter(models.User.username == "admin").first():
         return
+    raw = b"admin123"
+    password_hash = bcrypt.hashpw(raw, bcrypt.gensalt(rounds=12)).decode("utf-8")
     user = models.User(
         username="admin",
-        password_hash=auth.get_password_hash("admin123"),
+        password_hash=password_hash,
     )
     db.add(user)
     db.commit()

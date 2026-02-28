@@ -1,0 +1,9 @@
+---
+description: Git commit message format - no Cursor footer to avoid deploy errors
+alwaysApply: true
+---
+
+# Git commits
+
+- Use a **single-line** commit message when committing (e.g. `fix: short description`).
+- Do **not** add any footer such as "Made-with: Cursor" or "Made with Cursor" to commit messages. Such footers can break Render/webhook parsing and cause deploy errors.

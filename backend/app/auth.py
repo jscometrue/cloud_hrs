@@ -22,18 +22,32 @@ _BCRYPT_MAX_BYTES = 72
 
 
 def _truncate_for_bcrypt(s: str) -> str:
+    if not isinstance(s, str):
+        s = str(s) if s is not None else ""
     b = s.encode("utf-8")
     if len(b) <= _BCRYPT_MAX_BYTES:
         return s
-    return b[:_BCRYPT_MAX_BYTES].decode("utf-8", errors="ignore")
+    out = b[:_BCRYPT_MAX_BYTES].decode("utf-8", errors="ignore")
+    return out if out else "\x00"
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(_truncate_for_bcrypt(plain), hashed)
+    try:
+        return pwd_context.verify(_truncate_for_bcrypt(plain), hashed)
+    except ValueError:
+        return False
 
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(_truncate_for_bcrypt(password))
+    password = password if isinstance(password, str) else (str(password) if password is not None else "")
+    pwd = _truncate_for_bcrypt(password)
+    try:
+        return pwd_context.hash(pwd)
+    except ValueError as e:
+        if "72 bytes" not in str(e):
+            raise
+        pwd = (password.encode("utf-8")[: _BCRYPT_MAX_BYTES]).decode("utf-8", errors="ignore") or "\x00"
+        return pwd_context.hash(pwd)
 
 
 def create_access_token(subject: str) -> str:
