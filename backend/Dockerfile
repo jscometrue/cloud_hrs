@@ -6,6 +6,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 COPY requirements.txt .
+# Ensure email-validator is installed for Pydantic EmailStr (avoids Render/cache issues)
+RUN python -m pip install --no-cache-dir email-validator
 RUN python -m pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
