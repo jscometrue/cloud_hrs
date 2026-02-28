@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 
 class DepartmentBase(BaseModel):
@@ -24,7 +24,7 @@ class EmployeeBase(BaseModel):
     emp_no: str
     first_name: str
     last_name: str
-    email: EmailStr
+    email: str
     phone: str | None = None
     hire_date: date
     status: str = "ACTIVE"
