@@ -13,7 +13,13 @@
     "placeholderPassword": "Enter password",
     "error": "Invalid username or password",
     "loggingIn": "Signing in…",
-    "notFound": "Login server not found. Set VITE_API_BASE_URL to your backend URL in the frontend service and redeploy."
+    "notFound": "Login server not found. Set VITE_API_BASE_URL to your backend URL in the frontend service and redeploy.",
+    "failedToFetch": "Cannot reach the backend. Use 'API address' below to set the backend URL, save, then try again.",
+    "apiSetting": "API address",
+    "apiBaseUrl": "Backend URL (no trailing slash)",
+    "saveAndReload": "Save and reload",
+    "reloading": "Reloading…",
+    "apiSettingHint": "On Failed to fetch, enter your Render backend URL here and save. e.g. https://jscorp-hr-backend.onrender.com"
   },
   "nav": {
     "dashboard": "Dashboard",

@@ -101,15 +101,23 @@ type DashboardStats = {
 
 type TabKey = 'dashboard' | 'employees' | 'organization' | 'attendance' | 'payroll' | 'evaluation' | 'education'
 
+const API_BASE_STORAGE_KEY = 'jscorp_hr_api_base'
+
 function getApiBase(): string {
+  if (typeof window !== 'undefined') {
+    const stored = window.localStorage.getItem(API_BASE_STORAGE_KEY)
+    if (stored && String(stored).trim().length > 0) return String(stored).trim().replace(/\/$/, '')
+  }
   const fromUrl = import.meta.env.VITE_API_BASE_URL
   if (fromUrl && String(fromUrl).trim().length > 0) return String(fromUrl).replace(/\/$/, '')
   const host = import.meta.env.VITE_API_HOST
   if (host && String(host).trim().length > 0) return `https://${String(host).trim()}`
-  // Deployed on Render without env: guess backend from frontend host (e.g. jscorp-hr-frontend -> jscorp-hr-backend)
   if (typeof window !== 'undefined' && window.location.hostname.endsWith('onrender.com')) {
-    const base = window.location.origin.replace(/-frontend\.onrender\.com$/, '-backend.onrender.com')
-    if (base !== window.location.origin) return base
+    const h = window.location.hostname
+    const origin = window.location.origin
+    const withBackend = origin.replace(/-frontend\.onrender\.com$/, '-backend.onrender.com')
+    if (withBackend !== origin) return withBackend
+    if (!h.includes('-frontend')) return `https://${h.replace('.onrender.com', '-backend.onrender.com')}`
   }
   return 'http://localhost:8000'
 }

@@ -13,7 +13,13 @@
     "placeholderPassword": "비밀번호 입력",
     "error": "사용자 ID 또는 비밀번호가 올바르지 않습니다.",
     "loggingIn": "로그인 중…",
-    "notFound": "로그인 서버를 찾을 수 없습니다. 배포 설정에서 VITE_API_BASE_URL을 백엔드 주소로 넣은 뒤 프론트엔드를 다시 배포해 주세요."
+    "notFound": "로그인 서버를 찾을 수 없습니다. 배포 설정에서 VITE_API_BASE_URL을 백엔드 주소로 넣은 뒤 프론트엔드를 다시 배포해 주세요.",
+    "failedToFetch": "백엔드에 연결할 수 없습니다. 아래 'API 주소 설정'에서 백엔드 주소를 입력해 저장 후 다시 로그인해 보세요.",
+    "apiSetting": "API 주소 설정",
+    "apiBaseUrl": "백엔드 주소 (끝에 / 없이)",
+    "saveAndReload": "저장 후 새로고침",
+    "reloading": "새로고침 중…",
+    "apiSettingHint": "Failed to fetch 시 Render 백엔드 URL을 여기에 입력한 뒤 저장하세요. 예: https://jscorp-hr-backend.onrender.com"
   },
   "nav": {
     "dashboard": "대시보드",

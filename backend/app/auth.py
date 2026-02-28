@@ -18,12 +18,22 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer(auto_error=False)
 
 
+_BCRYPT_MAX_BYTES = 72
+
+
+def _truncate_for_bcrypt(s: str) -> str:
+    b = s.encode("utf-8")
+    if len(b) <= _BCRYPT_MAX_BYTES:
+        return s
+    return b[:_BCRYPT_MAX_BYTES].decode("utf-8", errors="ignore")
+
+
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    return pwd_context.verify(_truncate_for_bcrypt(plain), hashed)
 
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    return pwd_context.hash(_truncate_for_bcrypt(password))
 
 
 def create_access_token(subject: str) -> str:
